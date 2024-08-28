@@ -1,0 +1,55 @@
+{
+    "api": {
+        "value": 0.1,
+        "writeable": false,
+        "type": "float"
+    },
+    "module": {
+        "value": "MetaListenerAdapter",
+        "writeable": false,
+        "type": "str"
+    },
+    "endpoints": [
+        {
+            "ip_address": {
+                "value": "127.0.0.1",
+                "writeable": false,
+                "type": "str"
+            },
+            "port": {
+                "value": 5659,
+                "writeable": false,
+                "type": "int"
+            }
+        }
+    ],
+    "count": {
+        "value": 1,
+        "writeable": false,
+        "type": "int"
+    },
+    "update_interval": {
+        "value": 0.5,
+        "writeable": false,
+        "type": "float"
+    },
+    "0": {
+        "status": {
+            "acquisitions": {},
+            "timestamp": "2025-11-11T10:29:20.290511",
+            "error": [],
+            "connected": true
+        },
+        "config": {
+            "acquisitions": {},
+            "data_endpoints": [
+                "tcp://127.0.0.1:10008",
+                "tcp://127.0.0.1:10018",
+                "tcp://127.0.0.1:10028",
+                "tcp://127.0.0.1:10038"
+            ],
+            "ctrl_port": 5659
+        },
+        "command": {}
+    }
+}

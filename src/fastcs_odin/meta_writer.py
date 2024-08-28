@@ -1,12 +1,20 @@
-from fastcs.attributes import AttrR, AttrRW, AttrW
-from fastcs.datatypes import Bool, String
+from fastcs.attributes import AttrR, AttrRW
+from fastcs.datatypes import Bool, Int, String
+from fastcs.wrappers import command
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
 from fastcs_odin.odin_adapter_controller import OdinAdapterController
 
 
 class MetaWriterAdapterController(OdinAdapterController):
-    """SubController for the meta writer adapter in an odin control server."""
+    """Controller for the meta writer adapter in an odin control server"""
+
+    def _process_parameters(self):
+        for parameter in self.parameters:
+            # Remove 0 index and status/config
+            match parameter.uri:
+                case ["0", "status" | "config", *_]:
+                    parameter.set_path(parameter.path[2:])
 
     acquisition_id: AttrRW = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/acquisition_id")
@@ -17,9 +25,13 @@ class MetaWriterAdapterController(OdinAdapterController):
     file_prefix: AttrRW = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/file_prefix")
     )
-    stop: AttrW = AttrW(
-        Bool(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/stop")
-    )
     writing: AttrR = AttrR(
         Bool(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/writing")
     )
+    written: AttrR = AttrR(
+        Int(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/written")
+    )
+
+    @command()
+    async def stop(self):
+        await self.connection.put("api/0.1/mw/config/stop", True)
