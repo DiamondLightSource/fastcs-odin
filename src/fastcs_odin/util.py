@@ -1,3 +1,4 @@
+import json
 import logging
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
@@ -194,3 +195,37 @@ def _walk_sub_controllers(
     for sub_controller in controller.get_sub_controllers().values():
         yield sub_controller
         yield from _walk_sub_controllers(sub_controller)
+
+
+def unpack_status_arrays(parameters: list[OdinParameter], uri: list[list[str]]):
+    """Takes a list of OdinParameters and a list of special uri. Search the parameter
+    for elements that match the values in the uri list and split them into one
+    new odinParameter for each value.
+
+    Args:
+        parameter: List of OdinParameters
+        uri: List of special uris to search and replace
+
+    Returns:
+        Original list of parameters with elements on uri replaced with
+        their indexed equivalent
+    """
+    removelist = []
+    for parameter in parameters:
+        if parameter.uri in uri:
+            status_list = json.loads(parameter.metadata["value"].replace("'", '"'))
+            for idx, value in enumerate(status_list):
+                metadata = {
+                    "value": value,
+                    "type": parameter.metadata["type"],
+                    "writeable": parameter.metadata["writeable"],
+                }
+                parameters.append(
+                    OdinParameter(uri=parameter.uri + [str(idx)], metadata=metadata)
+                )
+            removelist.append(parameter)
+
+    for value in removelist:
+        parameters.remove(value)
+
+    return parameters

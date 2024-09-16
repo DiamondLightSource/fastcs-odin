@@ -18,6 +18,7 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
+    unpack_status_arrays,
 )
 
 HERE = Path(__file__).parent
@@ -109,6 +110,86 @@ def test_config_node_splits_list_into_mutiples():
     data = {"config": {"param": [1, 2]}}
     parameters = create_odin_parameters(data)
     assert len(parameters) == 2
+
+
+def test_unpack_status_array_one_node_fp():
+    uri_list = [
+        ["0", "status", "plugins", "names"],
+    ]
+    with (HERE / "input/one_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    parameters = create_odin_parameters(response)
+    parameters = unpack_status_arrays(parameters, uri_list)
+    assert len(parameters) == 100
+
+
+def test_unpack_status_array_two_node_fp():
+    uri_list = [
+        ["0", "status", "plugins", "names"],
+        ["1", "status", "plugins", "names"],
+    ]
+
+    with (HERE / "input/two_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    parameters = create_odin_parameters(response)
+    parameters = unpack_status_arrays(parameters, uri_list)
+
+    assert len(parameters) == 196
+
+
+def test_unpack_status_array():
+    uri_list = [
+        ["status", "plugins", "names"],
+    ]
+
+    data = {
+        "status": {
+            "plugins": {"names": ["dummy", "hdf", "offset", "param"]},
+        }
+    }
+
+    parameters = create_odin_parameters(data)
+    parameters = unpack_status_arrays(parameters, uri_list)
+
+    assert len(parameters) == 4
+
+    assert parameters[0] == OdinParameter(
+        uri=["status", "plugins", "names", "0"],
+        metadata={
+            "value": "dummy",
+            "type": "str",
+            "writeable": False,
+        },
+    )
+
+    assert parameters[1] == OdinParameter(
+        uri=["status", "plugins", "names", "1"],
+        metadata={
+            "value": "hdf",
+            "type": "str",
+            "writeable": False,
+        },
+    )
+
+    assert parameters[2] == OdinParameter(
+        uri=["status", "plugins", "names", "2"],
+        metadata={
+            "value": "offset",
+            "type": "str",
+            "writeable": False,
+        },
+    )
+
+    assert parameters[3] == OdinParameter(
+        uri=["status", "plugins", "names", "3"],
+        metadata={
+            "value": "param",
+            "type": "str",
+            "writeable": False,
+        },
+    )
 
 
 def test_invalid_list_param():
