@@ -45,7 +45,7 @@ dev = [
     "types-requests",
 ]
 odin = [
-    "odin-control @ git+https://github.com/odin-detector/odin-control@param-tree-replace",
+    "odin-control @ git+https://github.com/odin-detector/odin-control",
     "odin-data[meta_writer] @ git+https://github.com/odin-detector/odin-data@fastcs-dev#subdirectory=python",
 ]
 
