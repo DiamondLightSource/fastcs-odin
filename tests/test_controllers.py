@@ -3,19 +3,27 @@ from pathlib import Path
 
 import pytest
 from fastcs.attributes import AttrR, AttrRW
+from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
+from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.http_connection import HTTPConnection
+from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.odin_adapter_controller import (
     ConfigFanSender,
     ParamTreeHandler,
     StatusSummaryUpdater,
 )
-from fastcs_odin.odin_controller import OdinAdapterController
+from fastcs_odin.odin_controller import (
+    OdinAdapterController,
+    OdinController,
+)
 from fastcs_odin.odin_data import (
+    FrameProcessorAdapterController,
     FrameProcessorController,
     FrameProcessorPluginController,
+    FrameReceiverAdapterController,
     FrameReceiverController,
     FrameReceiverDecoderController,
 )
@@ -64,6 +72,37 @@ def test_fp_process_parameters():
             uri=["config", "hdf", "frames"], _path=["hdf", "frames"], metadata={}
         ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_create_adapter_controller(mocker: MockerFixture):
+    controller = OdinController(IPConnectionSettings("", 0))
+    controller.connection = mocker.AsyncMock()
+
+    ctrl = controller._create_adapter_controller(
+        controller.connection, None, "fp", "FrameProcessorAdapter"
+    )
+    assert isinstance(ctrl, FrameProcessorAdapterController)
+
+    ctrl = controller._create_adapter_controller(
+        controller.connection, None, "fr", "FrameReceiverAdapter"
+    )
+    assert isinstance(ctrl, FrameReceiverAdapterController)
+
+    ctrl = controller._create_adapter_controller(
+        controller.connection, None, "mw", "MetaListenerAdapter"
+    )
+    assert isinstance(ctrl, MetaWriterAdapterController)
+
+    ctrl = controller._create_adapter_controller(
+        controller.connection, None, "ef", "EigerFanAdapter"
+    )
+    assert isinstance(ctrl, EigerFanAdapterController)
+
+    ctrl = controller._create_adapter_controller(
+        controller.connection, None, "od", "OtherAdapter"
+    )
+    assert isinstance(ctrl, OdinAdapterController)
 
 
 @pytest.mark.asyncio

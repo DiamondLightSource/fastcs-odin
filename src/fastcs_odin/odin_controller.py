@@ -24,6 +24,10 @@ class OdinController(Controller):
     """A root ``Controller`` for an odin control server."""
 
     API_PREFIX = "api/0.1"
+    MODULE_FRAME_PROCESSOR = "FrameProcessorAdapter"
+    MODULE_FRAME_RECEIVER = "FrameReceiverAdapter"
+    MODULE_META_WRITER = "MetaListenerAdapter"
+    MODULE_EIGER_FAN = "EigerFanAdapter"
 
     def __init__(self, settings: IPConnectionSettings) -> None:
         super().__init__()
@@ -50,9 +54,17 @@ class OdinController(Controller):
             response = await self.connection.get(
                 f"{self.API_PREFIX}/{adapter}", headers=REQUEST_METADATA_HEADER
             )
+            # Extract the module name of the adapter
+            match response:
+                case {"module": module_data}:
+                    module = module_data["value"]
+                case _:
+                    raise ValueError(
+                        f"Did not find valid module name in response:\n{response}"
+                    )
 
             adapter_controller = self._create_adapter_controller(
-                self.connection, create_odin_parameters(response), adapter
+                self.connection, create_odin_parameters(response), adapter, module
             )
             self.register_sub_controller(adapter.upper(), adapter_controller)
             await adapter_controller.initialise()
@@ -64,32 +76,30 @@ class OdinController(Controller):
         connection: HTTPConnection,
         parameters: list[OdinParameter],
         adapter: str,
+        module: str,
     ) -> OdinAdapterController:
         """Create a sub controller for an adapter in an odin control server."""
 
-        match adapter:
-            # TODO: May not be called "fp", it is configurable in the server
-            case "fp":
+        match module:
+            case self.MODULE_FRAME_PROCESSOR:
                 return FrameProcessorAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/fp"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case "fr":
+            case self.MODULE_FRAME_RECEIVER:
                 return FrameReceiverAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/fr"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case "mw":
+            case self.MODULE_META_WRITER:
                 return MetaWriterAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/mw"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case "ef":
+            case self.MODULE_EIGER_FAN:
                 return EigerFanAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/ef"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
             case _:
                 return OdinAdapterController(
-                    connection,
-                    parameters,
-                    f"{self.API_PREFIX}/{adapter}",
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
 
     async def connect(self) -> None:
