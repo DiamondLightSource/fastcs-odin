@@ -10,7 +10,7 @@ from fastcs_odin.odin_data import (
     FrameProcessorAdapterController,
     FrameReceiverAdapterController,
 )
-from fastcs_odin.util import OdinParameter, create_odin_parameters
+from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
 types = {"float": Float(), "int": Int(), "bool": Bool(), "str": String()}
 
@@ -24,10 +24,6 @@ class OdinController(Controller):
     """A root ``Controller`` for an odin control server."""
 
     API_PREFIX = "api/0.1"
-    MODULE_FRAME_PROCESSOR = "FrameProcessorAdapter"
-    MODULE_FRAME_RECEIVER = "FrameReceiverAdapter"
-    MODULE_META_WRITER = "MetaListenerAdapter"
-    MODULE_EIGER_FAN = "EigerFanAdapter"
 
     def __init__(self, settings: IPConnectionSettings) -> None:
         super().__init__()
@@ -81,19 +77,19 @@ class OdinController(Controller):
         """Create a sub controller for an adapter in an odin control server."""
 
         match module:
-            case self.MODULE_FRAME_PROCESSOR:
+            case AdapterType.FRAME_PROCESSOR:
                 return FrameProcessorAdapterController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case self.MODULE_FRAME_RECEIVER:
+            case AdapterType.FRAME_RECEIVER:
                 return FrameReceiverAdapterController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case self.MODULE_META_WRITER:
+            case AdapterType.META_WRITER:
                 return MetaWriterAdapterController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )
-            case self.MODULE_EIGER_FAN:
+            case AdapterType.EIGER_FAN:
                 return EigerFanAdapterController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}"
                 )

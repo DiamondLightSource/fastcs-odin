@@ -27,7 +27,7 @@ from fastcs_odin.odin_data import (
     FrameReceiverController,
     FrameReceiverDecoderController,
 )
-from fastcs_odin.util import OdinParameter
+from fastcs_odin.util import AdapterType, OdinParameter
 
 HERE = Path(__file__).parent
 
@@ -81,22 +81,22 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     parameters = [OdinParameter(["0"], metadata={})]
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, parameters, "fp", "FrameProcessorAdapter"
+        controller.connection, parameters, "fp", AdapterType.FRAME_PROCESSOR
     )
     assert isinstance(ctrl, FrameProcessorAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, parameters, "fr", "FrameReceiverAdapter"
+        controller.connection, parameters, "fr", AdapterType.FRAME_RECEIVER
     )
     assert isinstance(ctrl, FrameReceiverAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, parameters, "mw", "MetaListenerAdapter"
+        controller.connection, parameters, "mw", AdapterType.META_WRITER
     )
     assert isinstance(ctrl, MetaWriterAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, parameters, "ef", "EigerFanAdapter"
+        controller.connection, parameters, "ef", AdapterType.EIGER_FAN
     )
     assert isinstance(ctrl, EigerFanAdapterController)
 
