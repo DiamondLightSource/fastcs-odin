@@ -1,10 +1,18 @@
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, TypeVar
 
 
 def is_metadata_object(v: Any) -> bool:
     return isinstance(v, dict) and "writeable" in v and "type" in v
+
+
+class AdapterType(str, Enum):
+    FRAME_PROCESSOR = "FrameProcessorAdapter"
+    FRAME_RECEIVER = "FrameReceiverAdapter"
+    META_WRITER = "MetaListenerAdapter"
+    EIGER_FAN = "EigerFanAdapter"
 
 
 @dataclass
