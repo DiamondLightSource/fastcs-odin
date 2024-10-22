@@ -78,29 +78,30 @@ def test_fp_process_parameters():
 async def test_create_adapter_controller(mocker: MockerFixture):
     controller = OdinController(IPConnectionSettings("", 0))
     controller.connection = mocker.AsyncMock()
+    parameters = [OdinParameter(["0"], metadata={})]
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, None, "fp", "FrameProcessorAdapter"
+        controller.connection, parameters, "fp", "FrameProcessorAdapter"
     )
     assert isinstance(ctrl, FrameProcessorAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, None, "fr", "FrameReceiverAdapter"
+        controller.connection, parameters, "fr", "FrameReceiverAdapter"
     )
     assert isinstance(ctrl, FrameReceiverAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, None, "mw", "MetaListenerAdapter"
+        controller.connection, parameters, "mw", "MetaListenerAdapter"
     )
     assert isinstance(ctrl, MetaWriterAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, None, "ef", "EigerFanAdapter"
+        controller.connection, parameters, "ef", "EigerFanAdapter"
     )
     assert isinstance(ctrl, EigerFanAdapterController)
 
     ctrl = controller._create_adapter_controller(
-        controller.connection, None, "od", "OtherAdapter"
+        controller.connection, parameters, "od", "OtherAdapter"
     )
     assert isinstance(ctrl, OdinAdapterController)
 

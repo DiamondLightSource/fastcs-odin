@@ -56,8 +56,8 @@ class OdinController(Controller):
             )
             # Extract the module name of the adapter
             match response:
-                case {"module": module_data}:
-                    module = module_data["value"]
+                case {"module": {"value": str() as module}}:
+                    pass
                 case _:
                     raise ValueError(
                         f"Did not find valid module name in response:\n{response}"
