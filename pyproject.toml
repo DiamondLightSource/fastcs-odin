@@ -50,7 +50,7 @@ odin = [
 ]
 
 [project.scripts]
-fastcs-odin = "fastcs_odin.__main__:main"
+fastcs-odin = "fastcs_odin.__main__:app"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/fastcs-odin"
