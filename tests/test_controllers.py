@@ -42,12 +42,12 @@ def test_create_attributes():
 
     controller._create_attributes()
 
-    match controller:
-        case OdinAdapterController(
-            read_int=AttrR(datatype=Int()),
-            write_bool=AttrRW(datatype=Bool()),
-            group_float=AttrR(datatype=Float(), group="Group"),
-        ):
+    match controller.attributes:
+        case {
+            "read_int": AttrR(datatype=Int()),
+            "write_bool": AttrRW(datatype=Bool()),
+            "group_float": AttrR(datatype=Float(), group="Group"),
+        }:
             pass
         case _:
             pytest.fail("Controller Attributes not as expected")
@@ -152,6 +152,7 @@ async def test_fp_create_plugin_sub_controllers():
         }:
             sub_controllers = controllers["HDF"].get_sub_controllers()
             assert "DS" in sub_controllers
+            assert isinstance(sub_controllers["DS"], OdinAdapterController)
             assert sub_controllers["DS"].parameters == [
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],
@@ -237,7 +238,9 @@ async def test_status_summary_updater(mocker: MockerFixture):
     hdf_controller.frames_written.get.return_value = 50
 
     handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), "HDF"], "frames_written", sum
+        ["OD", ("FP",), re.compile("FP*"), "HDF"],
+        "frames_written",
+        sum,  # type: ignore
     )
     hdf_controller.frames_written.get.return_value = 50
     await handler.update(controller, attr)

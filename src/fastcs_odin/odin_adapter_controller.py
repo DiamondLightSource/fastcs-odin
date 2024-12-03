@@ -2,7 +2,7 @@ import logging
 import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from fastcs.attributes import AttrR, AttrRW, AttrW, Handler, Sender, Updater
 from fastcs.controller import BaseController, SubController
@@ -23,7 +23,7 @@ class AdapterResponseError(Exception): ...
 @dataclass
 class ParamTreeHandler(Handler):
     path: str
-    update_period: float = 0.2
+    update_period: float | None = 0.2
     allowed_values: dict[int, str] | None = None
 
     async def put(
@@ -63,7 +63,7 @@ T = TypeVar("T")
 
 
 @dataclass
-class StatusSummaryUpdater(Updater):
+class StatusSummaryUpdater(Updater, Generic[T]):
     """Updater to accumulate underlying attributes into a high-level summary.
 
     Args:
@@ -80,7 +80,7 @@ class StatusSummaryUpdater(Updater):
     path_filter: list[str | tuple[str] | re.Pattern]
     attribute_name: str
     accumulator: Callable[[Iterable[T]], T]
-    update_period: float = 0.2
+    update_period: float | None = 0.2
 
     async def update(self, controller: "OdinAdapterController", attr: AttrR):
         values = []
@@ -101,7 +101,7 @@ class ConfigFanSender(Sender):
 
     attributes: list[AttrW]
 
-    async def put(self, _controller: "OdinAdapterController", attr: AttrW, value: Any):
+    async def put(self, _: "OdinAdapterController", attr: AttrW, value: Any):  # pyright: ignore[reportIncompatibleMethodOverride]
         for attribute in self.attributes:
             await attribute.process(value)
 
@@ -111,10 +111,11 @@ class ConfigFanSender(Sender):
 
 def _filter_sub_controllers(
     controller: BaseController, path_filter: Sequence[str | tuple[str] | re.Pattern]
-) -> Iterable[SubController]:
+) -> Iterable[BaseController]:
     sub_controller_map = controller.get_sub_controllers()
 
     if len(path_filter) == 1:
+        assert isinstance(path_filter[0], str)
         yield sub_controller_map[path_filter[0]]
         return
 
@@ -212,5 +213,4 @@ class OdinAdapterController(SubController):
                 ),
                 group=group,
             )
-
-            setattr(self, parameter.name.replace(".", ""), attr)
+            self.attributes[parameter.name.replace(".", "")] = attr
