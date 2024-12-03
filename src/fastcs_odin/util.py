@@ -1,7 +1,9 @@
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
+
+from fastcs.controller import BaseController, SubController
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -146,3 +148,17 @@ def partition(
             falsy.append(parameter)
 
     return truthy, falsy
+
+
+def get_all_sub_controllers(
+    controller: BaseController,
+) -> list[SubController]:
+    return list(_walk_sub_controllers(controller))
+
+
+def _walk_sub_controllers(
+    controller: BaseController,
+) -> Iterable[SubController]:
+    for sub_controller in controller.get_sub_controllers().values():
+        yield sub_controller
+        yield from _walk_sub_controllers(sub_controller)
