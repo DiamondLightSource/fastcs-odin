@@ -26,6 +26,18 @@ class FrameReceiverController(OdinDataController):
 class FrameReceiverAdapterController(OdinDataAdapterController):
     _subcontroller_label = "FR"
     _subcontroller_cls = FrameReceiverController
+    _unique_config = [
+        "rank",
+        "number",
+        "ctrl_endpoint",
+        "fr_ready_cnxn",
+        "fr_release_cnxn",
+        "frame_ready_endpoint",
+        "frame_release_endpoint",
+        "shared_buffer_name",
+        "rx_address",
+        "rx_ports",
+    ]
 
 
 class FrameReceiverDecoderController(OdinAdapterController):
