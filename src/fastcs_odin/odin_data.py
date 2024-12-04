@@ -1,15 +1,12 @@
 import logging
-import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 
-from fastcs.attributes import AttrR, AttrW
+from fastcs.attributes import AttrW
 from fastcs.controller import BaseController, SubController
-from fastcs.datatypes import Bool, Int
 
 from fastcs_odin.odin_adapter_controller import (
     ConfigFanSender,
     OdinAdapterController,
-    StatusSummaryUpdater,
 )
 from fastcs_odin.util import OdinParameter, partition
 
@@ -94,131 +91,6 @@ class OdinDataAdapterController(OdinAdapterController):
                     handler=ConfigFanSender(sub_attributes),
                 ),
             )
-
-
-class FrameReceiverController(OdinDataController):
-    async def initialise(self):
-        self._process_parameters()
-
-        def __decoder_parameter(parameter: OdinParameter):
-            return "decoder" in parameter.path[:-1]
-
-        decoder_parameters, self.parameters = partition(
-            self.parameters, __decoder_parameter
-        )
-        decoder_controller = FrameReceiverDecoderController(
-            self.connection, decoder_parameters, f"{self._api_prefix}"
-        )
-        self.register_sub_controller("DECODER", decoder_controller)
-        await decoder_controller.initialise()
-        self._create_attributes()
-
-
-class FrameReceiverAdapterController(OdinDataAdapterController):
-    _subcontroller_label = "FR"
-    _subcontroller_cls = FrameReceiverController
-
-
-class FrameReceiverDecoderController(OdinAdapterController):
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            # remove redundant status/decoder part from path
-            parameter.set_path(parameter.uri[2:])
-
-
-class FrameProcessorController(OdinDataController):
-    """Sub controller for a frame processor application."""
-
-    async def initialise(self):
-        plugins_response = await self.connection.get(
-            f"{self._api_prefix}/status/plugins/names"
-        )
-        match plugins_response:
-            case {"names": [*plugin_list]}:
-                plugins = tuple(a for a in plugin_list if isinstance(a, str))
-                if len(plugins) != len(plugin_list):
-                    raise ValueError(f"Received invalid plugins list:\n{plugin_list}")
-            case _:
-                raise ValueError(
-                    f"Did not find valid plugins in response:\n{plugins_response}"
-                )
-
-        self._process_parameters()
-        await self._create_plugin_sub_controllers(plugins)
-        self._create_attributes()
-
-    async def _create_plugin_sub_controllers(self, plugins: Sequence[str]):
-        for plugin in plugins:
-
-            def __parameter_in_plugin(
-                parameter: OdinParameter, plugin: str = plugin
-            ) -> bool:
-                return parameter.path[0] == plugin
-
-            plugin_parameters, self.parameters = partition(
-                self.parameters, __parameter_in_plugin
-            )
-            plugin_controller = FrameProcessorPluginController(
-                self.connection,
-                plugin_parameters,
-                f"{self._api_prefix}",
-            )
-            self.register_sub_controller(plugin.upper(), plugin_controller)
-            await plugin_controller.initialise()
-
-
-class FrameProcessorAdapterController(OdinDataAdapterController):
-    frames_written: AttrR = AttrR(
-        Int(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "frames_written", sum),
-    )
-    writing: AttrR = AttrR(
-        Bool(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "writing", any),
-    )
-    _unique_config = [
-        "rank",
-        "number",
-        "ctrl_endpoint",
-        "meta_endpoint",
-        "fr_ready_cnxn",
-        "fr_release_cnxn",
-    ]
-    _subcontroller_label = "FP"
-    _subcontroller_cls = FrameProcessorController
-
-
-class FrameProcessorPluginController(OdinAdapterController):
-    """SubController for a plugin in a frameProcessor application."""
-
-    async def initialise(self):
-        if any("dataset" in p.path for p in self.parameters):
-
-            def __dataset_parameter(param: OdinParameter):
-                return "dataset" in param.path
-
-            dataset_parameters, self.parameters = partition(
-                self.parameters, __dataset_parameter
-            )
-            if dataset_parameters:
-                dataset_controller = FrameProcessorDatasetController(
-                    self.connection, dataset_parameters, f"{self._api_prefix}"
-                )
-                self.register_sub_controller("DS", dataset_controller)
-                await dataset_controller.initialise()
-
-        return await super().initialise()
-
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            # Remove plugin name included in controller base path
-            parameter.set_path(parameter.path[1:])
-
-
-class FrameProcessorDatasetController(OdinAdapterController):
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            parameter.set_path(parameter.uri[3:])
 
 
 def get_all_sub_controllers(

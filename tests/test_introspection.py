@@ -4,9 +4,11 @@ from pathlib import Path
 import pytest
 from pytest_mock import MockerFixture
 
-from fastcs_odin.odin_data import (
+from fastcs_odin.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
+)
+from fastcs_odin.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
