@@ -12,7 +12,7 @@ classifiers = [
 description = "FastCS support for the Odin detector software framework"
 dependencies = [
     "aiohttp",
-    "fastcs~=0.7.0",
+    "fastcs @ git+https://github.com/DiamondLightSource/FastCS.git@main",
 ]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -27,11 +27,11 @@ authors = [
 [project.optional-dependencies]
 dev = [
     "copier",
-    "mypy",
     "myst-parser",
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
+    "pyright",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -58,8 +58,9 @@ GitHub = "https://github.com/DiamondLightSource/fastcs-odin"
 [tool.setuptools_scm]
 version_file = "src/fastcs_odin/_version.py"
 
-[tool.mypy]
-ignore_missing_imports = true # Ignore missing stubs in imported modules
+[tool.pyright]
+typeCheckingMode = "standard"
+reportMissingImports = false # Ignore missing stubs in imported modules
 
 [tool.pytest.ini_options]
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
@@ -92,12 +93,12 @@ passenv = *
 allowlist_externals =
     pytest
     pre-commit
-    mypy
+    pyright
     sphinx-build
     sphinx-autobuild
 commands =
     pre-commit: pre-commit run --all-files --show-diff-on-failure {posargs}
-    type-checking: mypy src tests {posargs}
+    type-checking: pyright src tests {posargs}
     tests: pytest --cov=fastcs_odin --cov-report term --cov-report xml:cov.xml {posargs}
     docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
 """

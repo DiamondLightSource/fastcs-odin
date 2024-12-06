@@ -1,9 +1,8 @@
 import logging
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from fastcs.attributes import AttrR, AttrW
-from fastcs.controller import BaseController, SubController
 from fastcs.datatypes import Bool, Int
 
 from fastcs_odin.odin_adapter_controller import (
@@ -11,7 +10,7 @@ from fastcs_odin.odin_adapter_controller import (
     OdinAdapterController,
     StatusSummaryUpdater,
 )
-from fastcs_odin.util import OdinParameter, partition
+from fastcs_odin.util import OdinParameter, get_all_sub_controllers, partition
 
 
 class OdinDataController(OdinAdapterController):
@@ -68,21 +67,31 @@ class OdinDataAdapterController(OdinAdapterController):
         """Search for config attributes in sub controllers to create fan out PVs."""
         parameter_attribute_map: dict[str, tuple[OdinParameter, list[AttrW]]] = {}
         for sub_controller in get_all_sub_controllers(self):
-            for parameter in sub_controller.parameters:
-                mode, key = parameter.uri[0], parameter.uri[-1]
-                if mode == "config" and key not in self._unique_config:
-                    try:
-                        attr = getattr(sub_controller, parameter.name)
-                    except AttributeError:
-                        logging.warning(
-                            f"Controller has parameter {parameter}, "
-                            f"but no corresponding attribute {parameter.name}"
-                        )
-
-                    if parameter.name not in parameter_attribute_map:
-                        parameter_attribute_map[parameter.name] = (parameter, [attr])
-                    else:
-                        parameter_attribute_map[parameter.name][1].append(attr)
+            match sub_controller:
+                case OdinAdapterController():
+                    for parameter in sub_controller.parameters:
+                        mode, key = parameter.uri[0], parameter.uri[-1]
+                        if mode == "config" and key not in self._unique_config:
+                            try:
+                                attr = getattr(sub_controller, parameter.name)
+                                if parameter.name not in parameter_attribute_map:
+                                    parameter_attribute_map[parameter.name] = (
+                                        parameter,
+                                        [attr],
+                                    )
+                                else:
+                                    parameter_attribute_map[parameter.name][1].append(
+                                        attr
+                                    )
+                            except AttributeError:
+                                logging.warning(
+                                    f"Controller has parameter {parameter}, "
+                                    f"but no corresponding attribute {parameter.name}"
+                                )
+                case _:
+                    logging.warning(
+                        f"Subcontroller {sub_controller} not an OdinAdapterController"
+                    )
 
         for parameter, sub_attributes in parameter_attribute_map.values():
             setattr(
@@ -170,7 +179,12 @@ class FrameProcessorController(OdinDataController):
 class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "frames_written", sum),
+        handler=StatusSummaryUpdater(
+            [re.compile("FP*"), "HDF"],
+            "frames_written",
+            sum,  # type: ignore
+            # sum does not fit accumulator type signature, casts bools to ints
+        ),
     )
     writing: AttrR = AttrR(
         Bool(),
@@ -219,15 +233,3 @@ class FrameProcessorDatasetController(OdinAdapterController):
     def _process_parameters(self):
         for parameter in self.parameters:
             parameter.set_path(parameter.uri[3:])
-
-
-def get_all_sub_controllers(
-    controller: "OdinAdapterController",
-) -> list["OdinAdapterController"]:
-    return list(_walk_sub_controllers(controller))
-
-
-def _walk_sub_controllers(controller: BaseController) -> Iterable[SubController]:
-    for sub_controller in controller.get_sub_controllers().values():
-        yield sub_controller
-        yield from _walk_sub_controllers(sub_controller)
