@@ -8,6 +8,16 @@ from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
+from fastcs_odin.frame_processor import (
+    FrameProcessorAdapterController,
+    FrameProcessorController,
+    FrameProcessorPluginController,
+)
+from fastcs_odin.frame_receiver import (
+    FrameReceiverAdapterController,
+    FrameReceiverController,
+    FrameReceiverDecoderController,
+)
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.odin_adapter_controller import (
@@ -15,18 +25,7 @@ from fastcs_odin.odin_adapter_controller import (
     ParamTreeHandler,
     StatusSummaryUpdater,
 )
-from fastcs_odin.odin_controller import (
-    OdinAdapterController,
-    OdinController,
-)
-from fastcs_odin.odin_data import (
-    FrameProcessorAdapterController,
-    FrameProcessorController,
-    FrameProcessorPluginController,
-    FrameReceiverAdapterController,
-    FrameReceiverController,
-    FrameReceiverDecoderController,
-)
+from fastcs_odin.odin_controller import OdinAdapterController, OdinController
 from fastcs_odin.util import AdapterType, OdinParameter
 
 HERE = Path(__file__).parent
