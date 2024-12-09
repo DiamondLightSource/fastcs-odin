@@ -41,12 +41,12 @@ def test_create_attributes():
 
     controller._create_attributes()
 
-    match controller:
-        case OdinAdapterController(
-            read_int=AttrR(datatype=Int()),
-            write_bool=AttrRW(datatype=Bool()),
-            group_float=AttrR(datatype=Float(), group="Group"),
-        ):
+    match controller.attributes:
+        case {
+            "read_int": AttrR(datatype=Int()),
+            "write_bool": AttrRW(datatype=Bool()),
+            "group_float": AttrR(datatype=Float(), group="Group"),
+        }:
             pass
         case _:
             pytest.fail("Controller Attributes not as expected")
@@ -151,6 +151,7 @@ async def test_fp_create_plugin_sub_controllers():
         }:
             sub_controllers = controllers["HDF"].get_sub_controllers()
             assert "DS" in sub_controllers
+            assert isinstance(sub_controllers["DS"], OdinAdapterController)
             assert sub_controllers["DS"].parameters == [
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],
@@ -233,12 +234,11 @@ async def test_status_summary_updater(mocker: MockerFixture):
     }
     fpx_controller.get_sub_controllers.return_value = {"HDF": hdf_controller}
 
-    hdf_controller.frames_written.get.return_value = 50
+    hdf_controller.attributes["frames_written"].get.return_value = 50
 
     handler = StatusSummaryUpdater(
         ["OD", ("FP",), re.compile("FP*"), "HDF"], "frames_written", sum
     )
-    hdf_controller.frames_written.get.return_value = 50
     await handler.update(controller, attr)
     attr.set.assert_called_once_with(100)
 
@@ -246,11 +246,11 @@ async def test_status_summary_updater(mocker: MockerFixture):
         ["OD", ("FP",), re.compile("FP*"), "HDF"], "writing", any
     )
 
-    hdf_controller.writing.get.side_effect = [True, False]
+    hdf_controller.attributes["writing"].get.side_effect = [True, False]
     await handler.update(controller, attr)
     attr.set.assert_called_with(True)
 
-    hdf_controller.writing.get.side_effect = [False, False]
+    hdf_controller.attributes["writing"].get.side_effect = [False, False]
     await handler.update(controller, attr)
     attr.set.assert_called_with(False)
 

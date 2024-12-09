@@ -2,7 +2,7 @@ import logging
 import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any
 
 from fastcs.attributes import AttrR, AttrRW, AttrW, Handler, Sender, Updater
 from fastcs.controller import BaseController, SubController
@@ -23,7 +23,7 @@ class AdapterResponseError(Exception): ...
 @dataclass
 class ParamTreeHandler(Handler):
     path: str
-    update_period: float = 0.2
+    update_period: float | None = 0.2
     allowed_values: dict[int, str] | None = None
 
     async def put(
@@ -59,9 +59,6 @@ class ParamTreeHandler(Handler):
             logging.error("Update loop failed for %s:\n%s", self.path, e)
 
 
-T = TypeVar("T")
-
-
 @dataclass
 class StatusSummaryUpdater(Updater):
     """Updater to accumulate underlying attributes into a high-level summary.
@@ -79,13 +76,13 @@ class StatusSummaryUpdater(Updater):
 
     path_filter: list[str | tuple[str] | re.Pattern]
     attribute_name: str
-    accumulator: Callable[[Iterable[T]], T]
-    update_period: float = 0.2
+    accumulator: Callable[[Iterable[Any]], float | int | bool | str]
+    update_period: float | None = 0.2
 
     async def update(self, controller: "OdinAdapterController", attr: AttrR):
         values = []
         for sub_controller in _filter_sub_controllers(controller, self.path_filter):
-            sub_attribute: AttrR = getattr(sub_controller, self.attribute_name)
+            sub_attribute: AttrR = sub_controller.attributes[self.attribute_name]  # type: ignore
             values.append(sub_attribute.get())
 
         await attr.set(self.accumulator(values))
@@ -101,7 +98,7 @@ class ConfigFanSender(Sender):
 
     attributes: list[AttrW]
 
-    async def put(self, _controller: "OdinAdapterController", attr: AttrW, value: Any):
+    async def put(self, controller: "OdinAdapterController", attr: AttrW, value: Any):
         for attribute in self.attributes:
             await attribute.process(value)
 
@@ -115,6 +112,7 @@ def _filter_sub_controllers(
     sub_controller_map = controller.get_sub_controllers()
 
     if len(path_filter) == 1:
+        assert isinstance(path_filter[0], str)
         yield sub_controller_map[path_filter[0]]
         return
 
@@ -212,5 +210,4 @@ class OdinAdapterController(SubController):
                 ),
                 group=group,
             )
-
-            setattr(self, parameter.name.replace(".", ""), attr)
+            self.attributes[parameter.name] = attr

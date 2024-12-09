@@ -2,9 +2,13 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from fastcs.backends.asyncio_backend import AsyncioBackend
-from fastcs.backends.epics.gui import EpicsGUIOptions
 from fastcs.connections.ip_connection import IPConnectionSettings
+from fastcs.launch import FastCS
+from fastcs.transport.epics.options import (
+    EpicsGUIOptions,
+    EpicsIOCOptions,
+    EpicsOptions,
+)
 
 from fastcs_odin.odin_controller import OdinController
 
@@ -43,25 +47,17 @@ OdinPort = typer.Option(8888, help="Port of odin server")
 
 @app.command()
 def ioc(pv_prefix: str = typer.Argument(), ip: str = OdinIp, port: int = OdinPort):
-    from fastcs.backends.epics.backend import EpicsBackend
-
     controller = OdinController(IPConnectionSettings(ip, port))
-
-    backend = EpicsBackend(controller, pv_prefix)
-    backend.create_gui(
-        options=EpicsGUIOptions(
+    options = EpicsOptions(
+        ioc=EpicsIOCOptions(pv_prefix=pv_prefix),
+        gui=EpicsGUIOptions(
             output_path=Path.cwd() / "odin.bob", title=f"Odin - {pv_prefix}"
-        )
+        ),
     )
-    backend.run()
-
-
-@app.command()
-def asyncio(ip: str = OdinIp, port: int = OdinPort):
-    controller = OdinController(IPConnectionSettings(ip, port))
-
-    backend = AsyncioBackend(controller)
-    backend.run()
+    launcher = FastCS(controller, options)
+    launcher.create_docs()
+    launcher.create_gui()
+    launcher.run()
 
 
 # test with: python -m fastcs_odin
