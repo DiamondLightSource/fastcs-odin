@@ -15,4 +15,4 @@ github_org: DiamondLightSource
 package_name: fastcs_odin
 pypi: true
 repo_name: fastcs-odin
-type_checker: mypy
+type_checker: pyright
