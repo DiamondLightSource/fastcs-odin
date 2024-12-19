@@ -59,6 +59,27 @@ class ParamTreeHandler(Handler):
             logging.error("Update loop failed for %s:\n%s", self.path, e)
 
 
+@dataclass
+class CommandHandler(Handler):
+    path: str
+    command: str
+
+    async def put(
+        self,
+        controller: "OdinAdapterController",
+        attr: AttrW[Any],
+        value: Any,
+    ) -> None:
+        try:
+            logging.debug("Sending command %s to %s", self.command, self.path)
+            response = await controller.connection.put(self.path, self.command)
+            match response:
+                case {"error": error}:
+                    raise AdapterResponseError(error)
+        except Exception as e:
+            logging.error("Command put %s = %s failed:\n%s", self.path, value, e)
+
+
 T = TypeVar("T")
 
 
@@ -184,33 +205,49 @@ class OdinAdapterController(SubController):
     def _create_attributes(self):
         """Create controller ``Attributes`` from ``OdinParameters``."""
         for parameter in self.parameters:
-            if "writeable" in parameter.metadata and parameter.metadata["writeable"]:
-                attr_class = AttrRW
-            else:
-                attr_class = AttrR
-
-            if parameter.metadata["type"] not in types:
-                logging.warning(f"Could not handle parameter {parameter}")
-                # this is really something I should handle here
-                continue
-
-            allowed = (
-                parameter.metadata["allowed_values"]
-                if "allowed_values" in parameter.metadata
-                else None
-            )
-
             if len(parameter.path) >= 2:
                 group = snake_to_pascal(f"{parameter.path[0]}")
             else:
                 group = None
 
-            attr = attr_class(
-                types[parameter.metadata["type"]],
-                handler=ParamTreeHandler(
-                    "/".join([self._api_prefix] + parameter.uri), allowed_values=allowed
-                ),
-                group=group,
-            )
+            if "command" in parameter.uri and "execute" not in parameter.uri:
+                command_uri = list(parameter.uri)
+                command_uri[-1] = "execute"
+                attr = AttrW(
+                    types["int"],
+                    handler=CommandHandler(
+                        "/".join([self._api_prefix] + command_uri), parameter.name
+                    ),
+                    group=group,
+                )
+
+            else:
+                if (
+                    "writeable" in parameter.metadata
+                    and parameter.metadata["writeable"]
+                ):
+                    attr_class = AttrRW
+                else:
+                    attr_class = AttrR
+
+                if parameter.metadata["type"] not in types:
+                    logging.warning(f"Could not handle parameter {parameter}")
+                    # this is really something I should handle here
+                    continue
+
+                allowed = (
+                    parameter.metadata["allowed_values"]
+                    if "allowed_values" in parameter.metadata
+                    else None
+                )
+
+                attr = attr_class(
+                    types[parameter.metadata["type"]],
+                    handler=ParamTreeHandler(
+                        "/".join([self._api_prefix] + parameter.uri),
+                        allowed_values=allowed,
+                    ),
+                    group=group,
+                )
 
             setattr(self, parameter.name.replace(".", ""), attr)

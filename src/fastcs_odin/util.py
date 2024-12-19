@@ -84,23 +84,37 @@ def _walk_odin_metadata(
                 yield from _walk_odin_metadata(sub_node, sub_node_path)
         else:
             # Leaves
-            if isinstance(node_value, dict) and is_metadata_object(node_value):
-                yield (node_path, node_value)
-            elif isinstance(node_value, list):
-                if "config" in node_path:
-                    # Split list into separate parameters so they can be set
-                    for idx, sub_node_value in enumerate(node_value):
-                        sub_node_path = node_path + [str(idx)]
-                        yield (
-                            sub_node_path,
-                            infer_metadata(sub_node_value, sub_node_path),
-                        )
-                else:
-                    # Convert read-only list to a string for display
-                    yield (node_path, infer_metadata(str(node_value), node_path))
+            if "command" in node_path and "allowed" in node_path:
+                cmds = node_value["value"]
+                for cmd in cmds:
+                    command_path = list(node_path)
+                    command_path[-1] = cmd
+                    command_value = dict(node_value)
+                    command_value["value"] = cmd
+                    command_value["writeable"] = True
+                    yield (command_path, command_value)
             else:
-                # TODO: This won't be needed when all parameters provide metadata
-                yield (node_path, infer_metadata(node_value, node_path))
+                if isinstance(node_value, dict) and is_metadata_object(node_value):
+                    yield (node_path, node_value)
+                elif isinstance(node_value, list):
+                    if "config" in node_path:
+                        # Split list into separate parameters so they can be set
+                        for idx, sub_node_value in enumerate(node_value):
+                            sub_node_path = node_path + [str(idx)]
+                            yield (
+                                sub_node_path,
+                                infer_metadata(sub_node_value, sub_node_path),
+                            )
+                    elif "command" in node_path:
+                        print(f"HERE 2 node_name: {node_name}")
+                        print(f"node_path: {node_path}")
+                        print(f"node_value: {node_value}")
+                    else:
+                        # Convert read-only list to a string for display
+                        yield (node_path, infer_metadata(str(node_value), node_path))
+                else:
+                    # TODO: This won't be needed when all parameters provide metadata
+                    yield (node_path, infer_metadata(node_value, node_path))
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
