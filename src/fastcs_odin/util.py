@@ -162,3 +162,47 @@ def _walk_sub_controllers(
     for sub_controller in controller.get_sub_controllers().values():
         yield sub_controller
         yield from _walk_sub_controllers(sub_controller)
+
+
+def unpack_status_arrays(parameter: list, uri: list[list[str]]):
+    """Takes a list of OdinParameters and a list of special uri. Search the parameter
+    for elements that match the values in the uri list and split them into one
+    new odinParameter for each value.
+
+    Args:
+        parameter: List of OdinParameters
+        uri: List of special uris to search and replace
+
+    Returns:
+        list[OdinParameters]
+
+    """
+    removelist = []
+    for el in parameter:
+        if el.uri in uri:
+            # Because the status is treated as a string we need
+            # to remove all the unwanted parts of it.
+            # Maybe there is a cleaner way of doing this
+            status_list = (
+                el.metadata["value"]
+                .replace(",", "")
+                .replace("'", "")
+                .replace("[", "")
+                .replace("]", "")
+                .split()
+            )
+            for idx, value in enumerate(status_list):
+                metadata = {
+                    "value": value,
+                    "type": el.metadata["type"],
+                    "writeable": el.metadata["writeable"],
+                }
+                od_parameter = OdinParameter(uri=el.uri + [str(idx)], metadata=metadata)
+                parameter.append(od_parameter)
+            removelist.append(el)
+
+    for value in removelist:
+        parameter.remove(value)
+
+    return parameter
+
