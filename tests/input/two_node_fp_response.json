@@ -5,7 +5,7 @@
         "type": "float"
     },
     "module": {
-        "value": "OdinDataAdapter",
+        "value": "FrameProcessorAdapter",
         "writeable": false,
         "type": "str"
     },
@@ -109,7 +109,7 @@
                     "mean_process": 0
                 }
             },
-            "timestamp": "2024-06-14T14:53:35.343227",
+            "timestamp": "2024-12-20T14:36:34.391594",
             "error": [],
             "connected": true
         },
@@ -168,10 +168,14 @@
                         "blosc_compressor": 0,
                         "blosc_level": 0,
                         "blosc_shuffle": 0,
+                        "dims": [
+                            256,
+                            512
+                        ],
                         "chunks": [
                             1,
-                            512,
-                            256
+                            256,
+                            512
                         ]
                     },
                     "uid": {
@@ -195,6 +199,37 @@
                         "adjustment": 1,
                         "input": ""
                     }
+                }
+            }
+        },
+        "command": {
+            "dummy": {
+                "allowed": {
+                    "value": [
+                        "print"
+                    ],
+                    "writeable": false,
+                    "type": "list"
+                },
+                "execute": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
+                }
+            },
+            "hdf": {
+                "allowed": {
+                    "value": [
+                        "start_writing",
+                        "stop_writing"
+                    ],
+                    "writeable": false,
+                    "type": "list"
+                },
+                "execute": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
                 }
             }
         }
@@ -263,7 +298,7 @@
                     "mean_process": 0
                 }
             },
-            "timestamp": "2024-06-14T14:53:35.363616",
+            "timestamp": "2024-12-20T14:36:34.422569",
             "error": [],
             "connected": true
         },
@@ -322,10 +357,14 @@
                         "blosc_compressor": 0,
                         "blosc_level": 0,
                         "blosc_shuffle": 0,
+                        "dims": [
+                            256,
+                            512
+                        ],
                         "chunks": [
                             1,
-                            512,
-                            256
+                            256,
+                            512
                         ]
                     },
                     "uid": {
@@ -350,6 +389,73 @@
                         "input": ""
                     }
                 }
+            }
+        },
+        "command": {
+            "dummy": {
+                "allowed": {
+                    "value": [
+                        "print"
+                    ],
+                    "writeable": false,
+                    "type": "list"
+                },
+                "execute": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
+                }
+            },
+            "hdf": {
+                "allowed": {
+                    "value": [
+                        "start_writing",
+                        "stop_writing"
+                    ],
+                    "writeable": false,
+                    "type": "list"
+                },
+                "execute": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
+                }
+            }
+        }
+    },
+    "config": {
+        "hdf": {
+            "acquisition_id": {
+                "value": "",
+                "writeable": true,
+                "type": "str"
+            },
+            "frames": {
+                "value": 0,
+                "writeable": true,
+                "type": "int"
+            },
+            "file": {
+                "path": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
+                },
+                "prefix": {
+                    "value": "",
+                    "writeable": true,
+                    "type": "str"
+                },
+                "extension": {
+                    "value": "h5",
+                    "writeable": true,
+                    "type": "str"
+                }
+            },
+            "write": {
+                "value": false,
+                "writeable": true,
+                "type": "bool"
             }
         }
     }
