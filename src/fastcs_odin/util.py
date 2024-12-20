@@ -105,10 +105,6 @@ def _walk_odin_metadata(
                                 sub_node_path,
                                 infer_metadata(sub_node_value, sub_node_path),
                             )
-                    elif "command" in node_path:
-                        print(f"HERE 2 node_name: {node_name}")
-                        print(f"node_path: {node_path}")
-                        print(f"node_value: {node_value}")
                     else:
                         # Convert read-only list to a string for display
                         yield (node_path, infer_metadata(str(node_value), node_path))
