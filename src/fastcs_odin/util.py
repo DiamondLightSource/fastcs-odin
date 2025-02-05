@@ -19,10 +19,10 @@ class AdapterType(str, Enum):
 
 
 class metadataModel(BaseModel):
-    value: Any
-    writeable: bool = False
-    type: str
-    allowed_values: dict[int, str] | None
+    value: Any | None = None
+    writeable: bool | None = None
+    type: str | None = None
+    allowed_values: dict[int, str] | None = None
 
 
 @dataclass
