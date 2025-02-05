@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, TypeVar
 
 from fastcs.controller import BaseController, SubController
+from pydantic import BaseModel
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -17,11 +18,18 @@ class AdapterType(str, Enum):
     EIGER_FAN = "EigerFanAdapter"
 
 
+class metadataModel(BaseModel):
+    value: Any
+    writeable: bool = False
+    type: str
+    allowed_values: dict[int, str] | None
+
+
 @dataclass
 class OdinParameter:
     uri: list[str]
     """Full URI."""
-    metadata: dict[str, Any]
+    metadata: metadataModel
     """JSON response from GET of parameter."""
 
     _path: list[str] = field(default_factory=list)
@@ -59,7 +67,7 @@ def create_odin_parameters(metadata: Mapping[str, Any]) -> list[OdinParameter]:
 
 def _walk_odin_metadata(
     tree: Mapping[str, Any], path: list[str]
-) -> Iterator[tuple[list[str], dict[str, Any]]]:
+) -> Iterator[tuple[list[str], metadataModel]]:
     """Walk through tree and yield the leaves and their paths.
 
     Args:
@@ -87,7 +95,8 @@ def _walk_odin_metadata(
         else:
             # Leaves
             if isinstance(node_value, dict) and is_metadata_object(node_value):
-                yield (node_path, node_value)
+                node_value["allowed_values"] = None
+                yield (node_path, metadataModel.model_validate(node_value))
             elif isinstance(node_value, list):
                 if "config" in node_path:
                     # Split list into separate parameters so they can be set
@@ -113,11 +122,13 @@ def infer_metadata(parameter: Any, uri: list[str]):
         uri: URI of parameter in API
 
     """
-    return {
+    metadict = {
         "value": parameter,
         "type": type(parameter).__name__,
         "writeable": "config" in uri,
+        "allowed_values": None,
     }
+    return metadataModel.model_validate(metadict)
 
 
 T = TypeVar("T")
