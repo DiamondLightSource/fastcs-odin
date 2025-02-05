@@ -182,21 +182,17 @@ class OdinAdapterController(SubController):
     def _create_attributes(self):
         """Create controller ``Attributes`` from ``OdinParameters``."""
         for parameter in self.parameters:
-            if "writeable" in parameter.metadata and parameter.metadata["writeable"]:
+            if parameter.metadata.writeable:
                 attr_class = AttrRW
             else:
                 attr_class = AttrR
 
-            if parameter.metadata["type"] not in types:
+            if parameter.metadata.type not in types:
                 logging.warning(f"Could not handle parameter {parameter}")
                 # this is really something I should handle here
                 continue
 
-            allowed = (
-                parameter.metadata["allowed_values"]
-                if "allowed_values" in parameter.metadata
-                else None
-            )
+            allowed = parameter.metadata.allowed_values
 
             if len(parameter.path) >= 2:
                 group = snake_to_pascal(f"{parameter.path[0]}")
@@ -204,7 +200,7 @@ class OdinAdapterController(SubController):
                 group = None
 
             attr = attr_class(
-                types[parameter.metadata["type"]],
+                types[parameter.metadata.type],
                 handler=ParamTreeHandler(
                     "/".join([self._api_prefix] + parameter.uri), allowed_values=allowed
                 ),
