@@ -26,7 +26,7 @@ from fastcs_odin.odin_adapter_controller import (
     StatusSummaryUpdater,
 )
 from fastcs_odin.odin_controller import OdinAdapterController, OdinController
-from fastcs_odin.util import AdapterType, OdinParameter, metadataModel
+from fastcs_odin.util import AdapterType, OdinParameter, OdinParameterMetadata
 
 HERE = Path(__file__).parent
 
@@ -35,15 +35,15 @@ def test_create_attributes():
     parameters = [
         OdinParameter(
             uri=["read_int"],
-            metadata=metadataModel.model_validate({"type": "int"}),
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
         ),
         OdinParameter(
             uri=["write_bool"],
-            metadata=metadataModel.model_validate({"type": "bool", "writeable": True}),
+            metadata=OdinParameterMetadata(value=True, type="bool", writeable=True),
         ),
         OdinParameter(
             uri=["group", "float"],
-            metadata=metadataModel.model_validate({"type": "float"}),
+            metadata=OdinParameterMetadata(value=0.1, type="float", writeable=True),
         ),
     ]
     controller = OdinAdapterController(HTTPConnection("", 0), parameters, "api/0.1")
@@ -65,10 +65,11 @@ def test_fp_process_parameters():
     parameters = [
         OdinParameter(
             ["0", "status", "hdf", "frames_written"],
-            metadata=metadataModel.model_validate({}),
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
         ),
         OdinParameter(
-            ["0", "config", "hdf", "frames"], metadata=metadataModel.model_validate({})
+            ["0", "config", "hdf", "frames"],
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=True),
         ),
     ]
 
@@ -79,12 +80,12 @@ def test_fp_process_parameters():
         OdinParameter(
             uri=["status", "hdf", "frames_written"],
             _path=["hdf", "frames_written"],
-            metadata=metadataModel.model_validate({}),
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
         ),
         OdinParameter(
             uri=["config", "hdf", "frames"],
             _path=["hdf", "frames"],
-            metadata=metadataModel.model_validate({}),
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=True),
         ),
     ]
 
@@ -93,7 +94,11 @@ def test_fp_process_parameters():
 async def test_create_adapter_controller(mocker: MockerFixture):
     controller = OdinController(IPConnectionSettings("", 0))
     controller.connection = mocker.AsyncMock()
-    parameters = [OdinParameter(["0"], metadata=metadataModel.model_validate({}))]
+    parameters = [
+        OdinParameter(
+            ["0"], metadata=OdinParameterMetadata(value=0, type="int", writeable=False)
+        )
+    ]
 
     ctrl = controller._create_adapter_controller(
         controller.connection, parameters, "fp", AdapterType.FRAME_PROCESSOR
@@ -127,17 +132,17 @@ async def test_fp_create_plugin_sub_controllers():
         OdinParameter(
             uri=["config", "ctrl_endpoint"],
             _path=["ctrl_endpoint"],
-            metadata=metadataModel.model_validate({"type": "str"}),
+            metadata=OdinParameterMetadata(value="", type="str", writeable=True),
         ),
         OdinParameter(
             uri=["status", "hdf", "frames_written"],
             _path=["hdf", "frames_written"],
-            metadata=metadataModel.model_validate({"type": "int"}),
+            metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
         ),
         OdinParameter(
             uri=["status", "hdf", "dataset", "compressed_size", "compression"],
             _path=["hdf", "dataset", "compressed_size", "compression"],
-            metadata=metadataModel.model_validate({"type": "str"}),
+            metadata=OdinParameterMetadata(value="", type="str", writeable=False),
         ),
     ]
 
@@ -150,7 +155,7 @@ async def test_fp_create_plugin_sub_controllers():
         OdinParameter(
             uri=["config", "ctrl_endpoint"],
             _path=["ctrl_endpoint"],
-            metadata=metadataModel.model_validate({"type": "str"}),
+            metadata=OdinParameterMetadata(value="", type="str", writeable=True),
         )
     ]
     controllers = fpc.get_sub_controllers()
@@ -161,6 +166,9 @@ async def test_fp_create_plugin_sub_controllers():
                     OdinParameter(
                         uri=["status", "hdf", "frames_written"],
                         _path=["frames_written"],
+                        metadata=OdinParameterMetadata(
+                            value=0, type="int", writeable=False
+                        ),
                     )
                 ]
             )
@@ -172,7 +180,9 @@ async def test_fp_create_plugin_sub_controllers():
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],
                     _path=["compressed_size", "compression"],
-                    metadata=metadataModel.model_validate({"type": "str"}),
+                    metadata=OdinParameterMetadata(
+                        value="", type="str", writeable=False
+                    ),
                 )
             ]
         case _:
@@ -290,25 +300,17 @@ async def test_config_fan_sender(mocker: MockerFixture):
 async def test_frame_reciever_controllers():
     valid_non_decoder_parameter = OdinParameter(
         uri=["0", "status", "buffers", "total"],
-        metadata=metadataModel.model_validate(
-            {"value": 292, "type": "int", "writeable": False}
-        ),
+        metadata=OdinParameterMetadata(value=292, type="int", writeable=True),
     )
     valid_decoder_parameter = OdinParameter(
         uri=["0", "status", "decoder", "packets_dropped"],
-        metadata=metadataModel.model_validate(
-            {"value": 0, "type": "int", "writeable": False}
-        ),
+        metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
     )
 
     invalid_decoder_parameter = OdinParameter(
         uri=["0", "status", "decoder", "name"],
-        metadata=metadataModel.model_validate(
-            {
-                "value": "DummyUDPFrameDecoder",
-                "type": "str",
-                "writeable": False,
-            }
+        metadata=OdinParameterMetadata(
+            value="DummyUDPFrameDecoder", type="str", writeable=False
         ),
     )
     parameters = [

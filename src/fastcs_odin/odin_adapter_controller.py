@@ -6,13 +6,10 @@ from typing import Any
 
 from fastcs.attributes import AttrR, AttrRW, AttrW, Handler, Sender, Updater
 from fastcs.controller import BaseController, SubController
-from fastcs.datatypes import Bool, Float, Int, String
 from fastcs.util import snake_to_pascal
 
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.util import OdinParameter
-
-types = {"float": Float(), "int": Int(), "bool": Bool(), "str": String()}
 
 REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
 
@@ -187,11 +184,6 @@ class OdinAdapterController(SubController):
             else:
                 attr_class = AttrR
 
-            if parameter.metadata.type not in types:
-                logging.warning(f"Could not handle parameter {parameter}")
-                # this is really something I should handle here
-                continue
-
             allowed = parameter.metadata.allowed_values
 
             if len(parameter.path) >= 2:
@@ -200,7 +192,7 @@ class OdinAdapterController(SubController):
                 group = None
 
             attr = attr_class(
-                types[parameter.metadata.type],
+                parameter.metadata.fastcs_datatype,
                 handler=ParamTreeHandler(
                     "/".join([self._api_prefix] + parameter.uri), allowed_values=allowed
                 ),
