@@ -184,8 +184,6 @@ class OdinAdapterController(SubController):
             else:
                 attr_class = AttrR
 
-            allowed = parameter.metadata.allowed_values
-
             if len(parameter.path) >= 2:
                 group = snake_to_pascal(f"{parameter.path[0]}")
             else:
@@ -194,7 +192,8 @@ class OdinAdapterController(SubController):
             attr = attr_class(
                 parameter.metadata.fastcs_datatype,
                 handler=ParamTreeHandler(
-                    "/".join([self._api_prefix] + parameter.uri), allowed_values=allowed
+                    "/".join([self._api_prefix] + parameter.uri),
+                    allowed_values=parameter.metadata.allowed_values,
                 ),
                 group=group,
             )

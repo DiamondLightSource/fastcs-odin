@@ -140,7 +140,7 @@ def infer_metadata(parameter: Any, uri: list[str]):
         uri: URI of parameter in API.
 
     Raises:
-        Validation error if type isn't supported
+        pydantic.ValidationError: if inferred metadata is not valid
 
     """
     metadata_dict = {

@@ -136,7 +136,7 @@ def test_infer_metadata_raises():
         infer_metadata([], ["count"])
 
 
-def test_walk_odin_metadata():
+def test_create_odin_parameters():
     # Test each possible case for parameter generation
     data = {
         "count": {"value": 1, "writeable": False, "type": "int"},  # Metadata provided
