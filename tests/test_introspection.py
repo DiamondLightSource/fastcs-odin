@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
 from fastcs_odin.frame_processor import (
@@ -12,7 +13,12 @@ from fastcs_odin.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
-from fastcs_odin.util import create_odin_parameters
+from fastcs_odin.util import (
+    OdinParameter,
+    OdinParameterMetadata,
+    create_odin_parameters,
+    infer_metadata,
+)
 
 HERE = Path(__file__).parent
 
@@ -103,3 +109,52 @@ def test_config_node_splits_list_into_mutiples():
     data = {"config": {"param": [1, 2]}}
     parameters = create_odin_parameters(data)
     assert len(parameters) == 2
+
+
+def test_invalid_list_param():
+    data = {
+        "count": {"value": 1, "writeable": False, "type": "list"},
+    }
+    parameters = create_odin_parameters(data)
+    assert len(parameters) == 0
+
+
+def test_infer_metadata():
+    metadata = infer_metadata(1, ["status", "count"])
+
+    assert metadata == OdinParameterMetadata(value=1, type="int", writeable=False)
+
+
+def test_infer_metadata_config():
+    metadata = infer_metadata(1, ["config", "count"])
+
+    assert metadata == OdinParameterMetadata(value=1, type="int", writeable=True)
+
+
+def test_infer_metadata_raises():
+    with pytest.raises(ValidationError):
+        infer_metadata([], ["count"])
+
+
+def test_create_odin_parameters():
+    # Test each possible case for parameter generation
+    data = {
+        "count": {"value": 1, "writeable": False, "type": "int"},  # Metadata provided
+        "config": {"chunks": [1]},  # List value, no metadata and writeable
+        "status": {"values": [1]},  # List value, no metadata and read only
+        "test": True,  # No metadata provided
+    }
+    parameters = create_odin_parameters(data)
+    metadata = OdinParameterMetadata(value=1, type="int", writeable=False)
+    assert parameters[0] == OdinParameter(uri=["count"], metadata=metadata)
+
+    metadata_config = OdinParameterMetadata(value=1, type="int", writeable=True)
+    uri_config = ["config", "chunks", "0"]
+    assert parameters[1] == OdinParameter(uri=uri_config, metadata=metadata_config)
+
+    metadata_config = OdinParameterMetadata(value="[1]", type="str", writeable=False)
+    uri_config = ["status", "values"]
+    assert parameters[2] == OdinParameter(uri=uri_config, metadata=metadata_config)
+
+    metadata_config = OdinParameterMetadata(value=True, type="bool", writeable=False)
+    assert parameters[3] == OdinParameter(uri=["test"], metadata=metadata_config)

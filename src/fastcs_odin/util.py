@@ -1,9 +1,12 @@
+import logging
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from fastcs.controller import BaseController, SubController
+from fastcs.datatypes import Bool, DataType, Float, Int, String
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -17,11 +20,31 @@ class AdapterType(str, Enum):
     EIGER_FAN = "EigerFanAdapter"
 
 
+class OdinParameterMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    value: Any
+    writeable: bool
+    type: Literal["float", "int", "bool", "str"]
+    allowed_values: dict[int, str] | None = None
+
+    @property
+    def fastcs_datatype(self) -> DataType:
+        match self.type:
+            case "float":
+                return Float()
+            case "int":
+                return Int()
+            case "bool":
+                return Bool()
+            case "str":
+                return String()
+
+
 @dataclass
 class OdinParameter:
     uri: list[str]
     """Full URI."""
-    metadata: dict[str, Any]
+    metadata: OdinParameterMetadata
     """JSON response from GET of parameter."""
 
     _path: list[str] = field(default_factory=list)
@@ -59,7 +82,7 @@ def create_odin_parameters(metadata: Mapping[str, Any]) -> list[OdinParameter]:
 
 def _walk_odin_metadata(
     tree: Mapping[str, Any], path: list[str]
-) -> Iterator[tuple[list[str], dict[str, Any]]]:
+) -> Iterator[tuple[list[str], OdinParameterMetadata]]:
     """Walk through tree and yield the leaves and their paths.
 
     Args:
@@ -86,23 +109,27 @@ def _walk_odin_metadata(
                 yield from _walk_odin_metadata(sub_node, sub_node_path)
         else:
             # Leaves
-            if isinstance(node_value, dict) and is_metadata_object(node_value):
-                yield (node_path, node_value)
-            elif isinstance(node_value, list):
-                if "config" in node_path:
-                    # Split list into separate parameters so they can be set
-                    for idx, sub_node_value in enumerate(node_value):
-                        sub_node_path = node_path + [str(idx)]
-                        yield (
-                            sub_node_path,
-                            infer_metadata(sub_node_value, sub_node_path),
-                        )
+            try:
+                if isinstance(node_value, dict) and is_metadata_object(node_value):
+                    yield (node_path, OdinParameterMetadata.model_validate(node_value))
+                elif isinstance(node_value, list):
+                    if "config" in node_path:
+                        # Split list into separate parameters so they can be set
+                        for idx, sub_node_value in enumerate(node_value):
+                            sub_node_path = node_path + [str(idx)]
+                            yield (
+                                sub_node_path,
+                                infer_metadata(sub_node_value, sub_node_path),
+                            )
+                    else:
+                        # Convert read-only list to a string for display
+                        yield (node_path, infer_metadata(str(node_value), node_path))
+
                 else:
-                    # Convert read-only list to a string for display
-                    yield (node_path, infer_metadata(str(node_value), node_path))
-            else:
-                # TODO: This won't be needed when all parameters provide metadata
-                yield (node_path, infer_metadata(node_value, node_path))
+                    # TODO: This won't be needed when all parameters provide metadata
+                    yield (node_path, infer_metadata(node_value, node_path))
+            except ValidationError as e:
+                logging.warning(f"Type not supported:\n{e}")
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
@@ -110,14 +137,19 @@ def infer_metadata(parameter: Any, uri: list[str]):
 
     Args:
         parameter: Value of parameter to create metadata for
-        uri: URI of parameter in API
+        uri: URI of parameter in API.
+
+    Raises:
+        pydantic.ValidationError: if inferred metadata is not valid
 
     """
-    return {
+    metadata_dict = {
         "value": parameter,
         "type": type(parameter).__name__,
         "writeable": "config" in uri,
     }
+
+    return OdinParameterMetadata.model_validate(metadata_dict)
 
 
 T = TypeVar("T")
