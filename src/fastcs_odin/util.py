@@ -58,7 +58,7 @@ class OdinParameter:
     @property
     def name(self) -> str:
         """Unique name of parameter."""
-        return "_".join(self.path)
+        return "_".join(self.path).replace("-", "")
 
     def set_path(self, path: list[str]):
         """Set reduced path of parameter to override uri when constructing name."""
