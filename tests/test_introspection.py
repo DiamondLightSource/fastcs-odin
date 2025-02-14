@@ -157,38 +157,38 @@ def test_unpack_status_array():
 
     assert parameters[0] == OdinParameter(
         uri=["status", "plugins", "names", "0"],
-        metadata={
-            "value": "dummy",
-            "type": "str",
-            "writeable": False,
-        },
+        metadata=OdinParameterMetadata(
+            value="dummy",
+            type="str",
+            writeable=False,
+        ),
     )
 
     assert parameters[1] == OdinParameter(
         uri=["status", "plugins", "names", "1"],
-        metadata={
-            "value": "hdf",
-            "type": "str",
-            "writeable": False,
-        },
+        metadata=OdinParameterMetadata(
+            value="hdf",
+            type="str",
+            writeable=False,
+        ),
     )
 
     assert parameters[2] == OdinParameter(
         uri=["status", "plugins", "names", "2"],
-        metadata={
-            "value": "offset",
-            "type": "str",
-            "writeable": False,
-        },
+        metadata=OdinParameterMetadata(
+            value="offset",
+            type="str",
+            writeable=False,
+        ),
     )
 
     assert parameters[3] == OdinParameter(
         uri=["status", "plugins", "names", "3"],
-        metadata={
-            "value": "param",
-            "type": "str",
-            "writeable": False,
-        },
+        metadata=OdinParameterMetadata(
+            value="param",
+            type="str",
+            writeable=False,
+        ),
     )
 
 

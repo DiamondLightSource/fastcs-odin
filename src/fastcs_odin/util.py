@@ -213,16 +213,23 @@ def unpack_status_arrays(parameters: list[OdinParameter], uri: list[list[str]]):
     removelist = []
     for parameter in parameters:
         if parameter.uri in uri:
-            status_list = json.loads(parameter.metadata["value"].replace("'", '"'))
+            status_list = json.loads(parameter.metadata.value.replace("'", '"'))
             for idx, value in enumerate(status_list):
-                metadata = {
-                    "value": value,
-                    "type": parameter.metadata["type"],
-                    "writeable": parameter.metadata["writeable"],
-                }
-                parameters.append(
-                    OdinParameter(uri=parameter.uri + [str(idx)], metadata=metadata)
-                )
+                try:
+                    parameters.append(
+                        OdinParameter(
+                            uri=parameter.uri + [str(idx)],
+                            metadata=OdinParameterMetadata(
+                                value=value,
+                                type=parameter.metadata.type,
+                                writeable=parameter.metadata.writeable,
+                            ),
+                        )
+                    )
+
+                except ValidationError as e:
+                    logging.warning(f"Type not supported:\n{e}")
+
             removelist.append(parameter)
 
     for value in removelist:
