@@ -192,6 +192,35 @@ def test_unpack_status_array():
     )
 
 
+def test_unpack_invlid_status_array():
+    uri_list = [
+        ["status", "plugins", "names"],
+    ]
+
+    parameters = [
+        OdinParameter(
+            uri=["status", "plugins", "names"],
+            metadata=OdinParameterMetadata(
+                value='["dummy" "hdf" "offset" "param"]',
+                type="str",
+                writeable=False,
+            ),
+        )
+    ]
+
+    parameters = unpack_status_arrays(parameters, uri_list)
+    assert parameters == [
+        OdinParameter(
+            uri=["status", "plugins", "names"],
+            metadata=OdinParameterMetadata(
+                value='["dummy" "hdf" "offset" "param"]',
+                type="str",
+                writeable=False,
+            ),
+        )
+    ]
+
+
 def test_invalid_list_param():
     data = {
         "count": {"value": 1, "writeable": False, "type": "list"},

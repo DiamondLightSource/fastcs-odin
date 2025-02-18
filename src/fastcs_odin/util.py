@@ -197,39 +197,38 @@ def _walk_sub_controllers(
         yield from _walk_sub_controllers(sub_controller)
 
 
-def unpack_status_arrays(parameters: list[OdinParameter], uri: list[list[str]]):
-    """Takes a list of OdinParameters and a list of special uri. Search the parameter
+def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]]):
+    """Takes a list of OdinParameters and a list of special uris. Search the parameter
     for elements that match the values in the uri list and split them into one
-    new odinParameter for each value.
+    new OdinParameter for each value.
 
     Args:
         parameter: List of OdinParameters
-        uri: List of special uris to search and replace
+        uris: List of uris to search and replace
 
     Returns:
-        Original list of parameters with elements on uri replaced with
+        Original list of parameters with elements in uris replaced with
         their indexed equivalent
     """
     removelist = []
     for parameter in parameters:
-        if parameter.uri in uri:
-            status_list = json.loads(parameter.metadata.value.replace("'", '"'))
+        if parameter.uri in uris:
+            try:
+                status_list = json.loads(parameter.metadata.value.replace("'", '"'))
+            except (json.JSONDecodeError, AssertionError) as e:
+                logging.warning(f"Failed to parse {parameter} value as a list:\n{e}")
+                continue
             for idx, value in enumerate(status_list):
-                try:
-                    parameters.append(
-                        OdinParameter(
-                            uri=parameter.uri + [str(idx)],
-                            metadata=OdinParameterMetadata(
-                                value=value,
-                                type=parameter.metadata.type,
-                                writeable=parameter.metadata.writeable,
-                            ),
-                        )
+                parameters.append(
+                    OdinParameter(
+                        uri=parameter.uri + [str(idx)],
+                        metadata=OdinParameterMetadata(
+                            value=value,
+                            type=parameter.metadata.type,
+                            writeable=parameter.metadata.writeable,
+                        ),
                     )
-
-                except ValidationError as e:
-                    logging.warning(f"Type not supported:\n{e}")
-
+                )
             removelist.append(parameter)
 
     for value in removelist:
