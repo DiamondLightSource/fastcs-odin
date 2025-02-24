@@ -1,3 +1,4 @@
+import json
 import logging
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
@@ -194,3 +195,43 @@ def _walk_sub_controllers(
     for sub_controller in controller.get_sub_controllers().values():
         yield sub_controller
         yield from _walk_sub_controllers(sub_controller)
+
+
+def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]]):
+    """Takes a list of OdinParameters and a list of uris. Search the parameter
+    for elements that match the values in the uris list and split them into one
+    new OdinParameter for each value.
+
+    Args:
+        parameters: List of OdinParameters
+        uris: List of uris to search and replace
+
+    Returns:
+        Original list of parameters with elements in uris replaced with
+        their indexed equivalent
+    """
+    removelist = []
+    for parameter in parameters:
+        if parameter.uri in uris:
+            try:
+                status_list = json.loads(parameter.metadata.value.replace("'", '"'))
+            except (json.JSONDecodeError, AssertionError) as e:
+                logging.warning(f"Failed to parse {parameter} value as a list:\n{e}")
+                continue
+            for idx, value in enumerate(status_list):
+                parameters.append(
+                    OdinParameter(
+                        uri=parameter.uri + [str(idx)],
+                        metadata=OdinParameterMetadata(
+                            value=value,
+                            type=parameter.metadata.type,
+                            writeable=parameter.metadata.writeable,
+                        ),
+                    )
+                )
+            removelist.append(parameter)
+
+    for value in removelist:
+        parameters.remove(value)
+
+    return parameters
