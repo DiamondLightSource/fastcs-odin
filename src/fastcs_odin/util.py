@@ -198,12 +198,12 @@ def _walk_sub_controllers(
 
 
 def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]]):
-    """Takes a list of OdinParameters and a list of special uris. Search the parameter
-    for elements that match the values in the uri list and split them into one
+    """Takes a list of OdinParameters and a list of uris. Search the parameter
+    for elements that match the values in the uris list and split them into one
     new OdinParameter for each value.
 
     Args:
-        parameter: List of OdinParameters
+        parameters: List of OdinParameters
         uris: List of uris to search and replace
 
     Returns:
