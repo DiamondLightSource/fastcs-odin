@@ -52,9 +52,9 @@ def test_create_attributes():
 
     match controller.attributes:
         case {
-            "read_int": AttrR(datatype=Int()),
-            "write_bool": AttrRW(datatype=Bool()),
-            "group_float": AttrR(datatype=Float(), group="Group"),
+            "Readint": AttrR(datatype=Int()),
+            "Writebool": AttrRW(datatype=Bool()),
+            "Groupfloat": AttrR(datatype=Float(), group="Group"),
         }:
             pass
         case _:

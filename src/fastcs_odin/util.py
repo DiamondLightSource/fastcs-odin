@@ -7,6 +7,7 @@ from typing import Any, Literal, TypeVar
 
 from fastcs.controller import BaseController, SubController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
+from pvi.device import enforce_pascal_case
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 
@@ -58,7 +59,7 @@ class OdinParameter:
     @property
     def name(self) -> str:
         """Unique name of parameter."""
-        return "_".join(self.path).replace("-", "")
+        return enforce_pascal_case("_".join(self.path))
 
     def set_path(self, path: list[str]):
         """Set reduced path of parameter to override uri when constructing name."""

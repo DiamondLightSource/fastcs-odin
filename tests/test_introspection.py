@@ -89,7 +89,7 @@ async def test_fr_initialise(mocker: MockerFixture):
 def test_node_with_empty_list_is_correctly_counted():
     parameters = create_odin_parameters({"test": []})
     names = [p.name for p in parameters]
-    assert "test" in names
+    assert "Test" in names
     assert len(parameters) == 1
 
 
@@ -103,7 +103,7 @@ def test_nested_node_gives_correct_name():
     data = {"top": {"nest-1": {"nest-2": 1}}}
     parameters = create_odin_parameters(data)
     assert len(parameters) == 1
-    assert parameters[0].name == "top_nest1_nest2"
+    assert parameters[0].name == "Topnest1nest2"
 
 
 def test_config_node_splits_list_into_mutiples():
