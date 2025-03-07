@@ -140,8 +140,7 @@ async def test_given_no_module_create_adapter_controller_succeeds(
         {"": {"value": "test_module"}},
     ]
 
-    async with mocker.patch("asyncio.sleep", return_value=None):
-        await controller.initialise()
+    await controller.initialise()
 
 
 @pytest.mark.asyncio

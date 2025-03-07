@@ -1,5 +1,3 @@
-import asyncio
-
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controller import Controller
 from fastcs.datatypes import Bool, Float, Int, String
@@ -62,7 +60,7 @@ class OdinController(Controller):
             )
             self.register_sub_controller(adapter.upper(), adapter_controller)
             await adapter_controller.initialise()
-        await asyncio.sleep(5)
+
         await self.connection.close()
 
     def _create_adapter_controller(
