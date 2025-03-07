@@ -127,6 +127,24 @@ async def test_create_adapter_controller(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
+async def test_create_adapter_controller_given_no_module_succeeds(
+    mocker: MockerFixture,
+):
+    controller = OdinController(IPConnectionSettings("", 0))
+
+    controller.connection = mocker.AsyncMock()
+    controller.connection.open = mocker.MagicMock()
+
+    controller.connection.get.side_effect = [
+        {"adapters": ["adapter1"]},
+        {"": {"value": "test_module"}},
+    ]
+
+    async with mocker.patch("asyncio.sleep", return_value=None):
+        await controller.initialise()
+
+
+@pytest.mark.asyncio
 async def test_fp_create_plugin_sub_controllers():
     parameters = [
         OdinParameter(
