@@ -127,7 +127,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_create_adapter_controller_given_no_module_succeeds(
+async def test_given_no_module_create_adapter_controller_succeeds(
     mocker: MockerFixture,
 ):
     controller = OdinController(IPConnectionSettings("", 0))
