@@ -125,6 +125,11 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     )
     assert isinstance(ctrl, OdinAdapterController)
 
+    ctrl = controller._create_adapter_controller(
+        controller.connection, parameters, "od", ""
+    )
+    assert isinstance(ctrl, OdinAdapterController)
+
 
 @pytest.mark.asyncio
 async def test_fp_create_plugin_sub_controllers():
