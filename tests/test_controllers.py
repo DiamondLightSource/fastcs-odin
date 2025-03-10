@@ -126,21 +126,40 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     assert isinstance(ctrl, OdinAdapterController)
 
 
+@pytest.mark.parametrize(
+    "mock_get, expected_controller",
+    [
+        [
+            [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
+            OdinAdapterController,
+        ],
+        [
+            [
+                {"adapters": ["test_adapter"]},
+                {"module": {"value": "FrameProcessorAdapter"}},
+            ],
+            FrameProcessorAdapterController,
+        ],
+    ],
+)
 @pytest.mark.asyncio
-async def test_given_no_module_create_adapter_controller_succeeds(
-    mocker: MockerFixture,
+async def test_controller_initialise(
+    mocker: MockerFixture, mock_get, expected_controller
 ):
     controller = OdinController(IPConnectionSettings("", 0))
 
+    controller.register_sub_controller = mocker.MagicMock()
     controller.connection = mocker.AsyncMock()
     controller.connection.open = mocker.MagicMock()
 
-    controller.connection.get.side_effect = [
-        {"adapters": ["adapter1"]},
-        {"": {"value": "test_module"}},
-    ]
+    controller.connection.get.side_effect = mock_get
 
     await controller.initialise()
+
+    assert isinstance(
+        controller.register_sub_controller.call_args_list[0][0][1],
+        expected_controller,
+    )
 
 
 @pytest.mark.asyncio
