@@ -148,7 +148,6 @@ async def test_controller_initialise(
 ):
     controller = OdinController(IPConnectionSettings("", 0))
 
-    controller.register_sub_controller = mocker.MagicMock()
     controller.connection = mocker.AsyncMock()
     controller.connection.open = mocker.MagicMock()
 
@@ -157,8 +156,7 @@ async def test_controller_initialise(
     await controller.initialise()
 
     assert isinstance(
-        controller.register_sub_controller.call_args_list[0][0][1],
-        expected_controller,
+        controller.get_sub_controllers()["TEST_ADAPTER"], expected_controller
     )
 
 
