@@ -53,9 +53,7 @@ class OdinController(Controller):
                 case {"module": {"value": str() as module}}:
                     pass
                 case _:
-                    raise ValueError(
-                        f"Did not find valid module name in response:\n{response}"
-                    )
+                    module = ""
 
             adapter_controller = self._create_adapter_controller(
                 self.connection, create_odin_parameters(response), adapter, module
