@@ -16,16 +16,12 @@ from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
 types = {"float": Float(), "int": Int(), "bool": Bool(), "str": String()}
 
-REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
-
 
 class AdapterResponseError(Exception): ...
 
 
 class OdinController(Controller):
     """A root ``Controller`` for an odin control server."""
-
-    API_PREFIX = "api/0.1"
 
     writing: AttrR = AttrR(
         Bool(), handler=StatusSummaryUpdater([("MW", "FP")], "writing", any)
@@ -39,7 +35,7 @@ class OdinController(Controller):
     async def initialise(self) -> None:
         self.connection.open()
 
-        adapters_response = await self.connection.get(f"{self.API_PREFIX}/adapters")
+        adapters_response = await self.connection.get_adapters()
         match adapters_response:
             case {"adapters": [*adapter_list]}:
                 adapters = tuple(a for a in adapter_list if isinstance(a, str))
@@ -53,9 +49,7 @@ class OdinController(Controller):
         for adapter in adapters:
             # Get full parameter tree and split into parameters at the root and under
             # an index where there are N identical trees for each underlying process
-            response = await self.connection.get(
-                f"{self.API_PREFIX}/{adapter}", headers=REQUEST_METADATA_HEADER
-            )
+            response = await self.connection.get(f"{adapter}", with_metadata=True)
             # Extract the module name of the adapter
             match response:
                 case {"module": {"value": str() as module}}:
@@ -82,25 +76,15 @@ class OdinController(Controller):
 
         match module:
             case AdapterType.FRAME_PROCESSOR:
-                return FrameProcessorAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
-                )
+                return FrameProcessorAdapterController(connection, parameters, adapter)
             case AdapterType.FRAME_RECEIVER:
-                return FrameReceiverAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
-                )
+                return FrameReceiverAdapterController(connection, parameters, adapter)
             case AdapterType.META_WRITER:
-                return MetaWriterAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
-                )
+                return MetaWriterAdapterController(connection, parameters, adapter)
             case AdapterType.EIGER_FAN:
-                return EigerFanAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
-                )
+                return EigerFanAdapterController(connection, parameters, adapter)
             case _:
-                return OdinAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
-                )
+                return OdinAdapterController(connection, parameters, adapter)
 
     async def connect(self) -> None:
         self.connection.open()

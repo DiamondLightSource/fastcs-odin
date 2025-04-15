@@ -1,8 +1,11 @@
 import json
 import logging
+import time
+from collections import deque
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
+from statistics import mean, stdev
 from typing import Any, Literal, TypeVar
 
 from fastcs.controller import BaseController, SubController
@@ -11,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 
 def is_metadata_object(v: Any) -> bool:
-    return isinstance(v, dict) and "writeable" in v and "type" in v
+    return isinstance(v, dict) and "writeable" in v and "type" in v and "value" in v
 
 
 class AdapterType(str, Enum):
@@ -19,6 +22,7 @@ class AdapterType(str, Enum):
     FRAME_RECEIVER = "FrameReceiverAdapter"
     META_WRITER = "MetaListenerAdapter"
     EIGER_FAN = "EigerFanAdapter"
+    GENERIC = "__generic__"
 
 
 class OdinParameterMetadata(BaseModel):
@@ -27,6 +31,10 @@ class OdinParameterMetadata(BaseModel):
     writeable: bool
     type: Literal["float", "int", "bool", "str"]
     allowed_values: dict[int, str] | None = None
+    name: str | None = None
+    description: str | None = None
+    units: str | None = None
+    display_precision: int | None = None
 
     @property
     def fastcs_datatype(self) -> DataType:
@@ -120,17 +128,26 @@ def _walk_odin_metadata(
         else:
             # Leaves
             try:
+                # If the parameter has metadata, use it to resolve the parameter
                 if isinstance(node_value, dict) and is_metadata_object(node_value):
-                    yield (node_path, OdinParameterMetadata.model_validate(node_value))
+                    if isinstance(node_value["value"], list):
+                        # If the parameter is a list, expand it to separate parameters
+                        yield from expand_list_parameter(node_value["value"], node_path)
+                    elif isinstance(node_value["value"], dict):
+                        # If the parameter is a dict, expand it to separate parameters
+                        yield from expand_dict_parameter(node_value["value"], node_path)
+                    else:
+                        # Otherwise validate the parameter and yield it
+                        yield (
+                            node_path,
+                            OdinParameterMetadata.model_validate(node_value),
+                        )
                 elif isinstance(node_value, list):
+                    # If the parameter is a list, expand it to separate parameters
                     if "config" in node_path:
-                        # Split list into separate parameters so they can be set
-                        for idx, sub_node_value in enumerate(node_value):
-                            sub_node_path = node_path + [str(idx)]
-                            yield (
-                                sub_node_path,
-                                infer_metadata(sub_node_value, sub_node_path),
-                            )
+                        # TODO - treating odin data config lists as a special case is
+                        #  likely unnecessary
+                        yield from expand_list_parameter(node_value, node_path)
                     else:
                         # Convert read-only list to a string for display
                         yield (node_path, infer_metadata(str(node_value), node_path))
@@ -143,6 +160,44 @@ def _walk_odin_metadata(
                     f"Type not supported for path {node_path} "
                     f"with value {node_value}:\n{e}"
                 )
+
+
+def expand_list_parameter(
+    values: list[Any], path: list[str]
+) -> Iterator[tuple[list[str], OdinParameterMetadata]]:
+    """Expand a list parameter into separately indexed parameters.
+
+    Args:
+        values: list of values to expand
+        path: list of path elements to this parameter in tree
+    """
+    for idx, sub_node_value in enumerate(values):
+        # Append list index to parameter path
+        sub_node_path = path + [str(idx)]
+        # Yield expanded list parameter
+        yield (
+            sub_node_path,
+            infer_metadata(sub_node_value, sub_node_path),
+        )
+
+
+def expand_dict_parameter(
+    values: dict[str, Any], path: list[str]
+) -> Iterator[tuple[list[str], OdinParameterMetadata]]:
+    """Expand a dict parameter into separate parameters.
+
+    Args:
+        values: dict of values to expand
+        path: list of path elements to this parameter in tree
+    """
+    for key, sub_node_value in values.items():
+        # Append dict item key to parameter path
+        sub_node_path = path + [key]
+        # Yield expanded dict parameter
+        yield (
+            sub_node_path,
+            infer_metadata(sub_node_value, sub_node_path),
+        )
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
@@ -247,3 +302,32 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
         parameters.remove(value)
 
     return parameters
+
+
+class OdinRequestTimer:
+    def __init__(
+        self, name: str, num_samples: int = 100, log_level: int = logging.DEBUG
+    ):
+        self._name = name
+        self._num_samples = num_samples
+        self._samples = deque(maxlen=num_samples)
+        self._count = 0
+        self._logger = logging.getLogger("odin_request_timer")
+        self._logger.setLevel(log_level)
+
+    def __enter__(self):
+        self._start = time.time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        delta = (time.time() - self._start) * 1000
+        self.add_sample(delta)
+
+    def add_sample(self, sample):
+        self._samples.append(sample)
+        self._count += 1
+
+        if self._count % (self._num_samples / 2) == 0:
+            self._logger.debug(
+                f"RequestTimer {self._name}: "
+                f"<{mean(self._samples):.3f} +/- {stdev(self._samples):.3f} ms>"
+            )

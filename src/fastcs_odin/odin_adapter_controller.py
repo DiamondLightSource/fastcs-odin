@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import re
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from fastcs.attributes import (
@@ -16,12 +18,85 @@ from fastcs.controller import BaseController, SubController
 from fastcs.util import snake_to_pascal
 
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.util import OdinParameter
-
-REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
+from fastcs_odin.util import OdinParameter, OdinRequestTimer
 
 
 class AdapterResponseError(Exception): ...
+
+
+@dataclass
+class ParamTreeCache:
+    path_prefix: str
+    connection: HTTPConnection
+    _last_update: datetime | None = None
+    _tree: dict[str, Any] = field(default_factory=dict)
+    _update_event: asyncio.Event = field(default_factory=asyncio.Event)
+
+    def __post_init__(self):
+        self._update_event.set()
+        self.request_timer = OdinRequestTimer(self.path_prefix)
+
+    def _has_expired(self, time_step: float) -> bool:
+        if self._last_update is None:
+            return True
+        delta_t = datetime.now() - self._last_update
+        return delta_t.total_seconds() > time_step
+
+    def _update_tree(self, tree: dict[str, Any]) -> None:
+        self._tree = tree
+        self._last_update = datetime.now()
+
+    def _resolve_value(self, path_elems: list[str], tree) -> Any:
+        if len(path_elems) == 1:
+            if isinstance(tree, list):
+                return tree[int(path_elems[0])]
+            else:
+                return tree[path_elems[0]]
+
+        return self._resolve_value(path_elems[1:], tree[path_elems[0]])
+
+    def _update_value(
+        self, path_elems: list[str], value: Any, tree: dict[str, Any]
+    ) -> None:
+        if len(path_elems) == 1:
+            tree[path_elems[0]] = value
+            return
+
+        self._update_value(path_elems[1:], value, tree[path_elems[0]])
+
+    async def get(self, path: str, update_period: float | None) -> Any:
+        if not update_period or self._has_expired(update_period):
+            if self._update_event.is_set():
+                self._update_event.clear()
+                try:
+                    with self.request_timer:
+                        response = await self.connection.get(self.path_prefix)
+                    self._update_tree(response)
+                except Exception as e:
+                    logging.error(
+                        "Update failed for %s/%s:\n%s", self.path_prefix, path, e
+                    )
+                finally:
+                    self._update_event.set()
+            else:
+                await self._update_event.wait()
+
+        path_elems = path.split("/")
+        value = self._resolve_value(path_elems[1:], self._tree)
+        return value
+
+    async def put(self, path: str, value: Any) -> None:
+        try:
+            response = await self.connection.put(path, value)
+            match response:
+                case {"error": error}:
+                    raise AdapterResponseError(error)
+                case _:
+                    path_elems = path.split("/")
+                    new_value = response.get(path_elems[-1])  # type: ignore
+                    self._update_value(path_elems[1:], new_value, self._tree)
+        except Exception as e:
+            logging.error("Put %s = %s failed:\n%s", path, value, e)
 
 
 @dataclass
@@ -43,11 +118,11 @@ class ParamTreeHandler(AttrHandlerRW):
         attr: AttrW[Any],
         value: Any,
     ) -> None:
+        if attr.dtype == bool:
+            value = bool(value)
+
         try:
-            response = await self.controller.connection.put(self.path, value)
-            match response:
-                case {"error": error}:
-                    raise AdapterResponseError(error)
+            await self.controller.cache.put(self.path, value)
         except Exception as e:
             logging.error("Put %s = %s failed:\n%s", self.path, value, e)
 
@@ -56,17 +131,8 @@ class ParamTreeHandler(AttrHandlerRW):
         attr: AttrR[Any],
     ) -> None:
         try:
-            response = await self.controller.connection.get(self.path)
-
-            # TODO: This would be nicer if the key was 'value' so we could match
-            parameter = self.path.split("/")[-1]
-            if parameter not in response:
-                raise ValueError(f"{parameter} not found in response:\n{response}")
-
-            value = response.get(parameter)
-            await attr.set(
-                attr.dtype(value)
-            )  # TODO: https://github.com/DiamondLightSource/FastCS/issues/159
+            value = await self.controller.cache.get(self.path, self.update_period)
+            await attr.set(value)
         except Exception as e:
             logging.error("Update loop failed for %s:\n%s", self.path, e)
 
@@ -196,6 +262,7 @@ class OdinAdapterController(SubController):
         self.connection = connection
         self.parameters = parameters
         self._api_prefix = api_prefix
+        self.cache = ParamTreeCache(api_prefix, connection)
 
     async def initialise(self):
         self._process_parameters()
