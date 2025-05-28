@@ -58,3 +58,25 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create tags for debug image
+        id: meta-debug
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-debug
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Push debug image
+        if: github.ref_type == 'tag'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          target: debug
+          tags: ${{ steps.meta-debug.outputs.tags }}
+          labels: ${{ steps.meta-debug.outputs.labels }}
+          push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
