@@ -30,8 +30,13 @@ class ParamTreeHandler(AttrHandlerRW):
     update_period: float | None = 0.2
     allowed_values: dict[int, str] | None = None
 
-    async def initialise(self, controller):
-        self.controller = controller
+    async def initialise(self, controller: BaseController):
+        assert isinstance(controller, OdinAdapterController)
+        self._controller = controller
+
+    @property
+    def controller(self) -> "OdinAdapterController":
+        return self._controller
 
     async def put(
         self,

@@ -225,7 +225,8 @@ async def test_fp_create_plugin_sub_controllers():
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_update(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames_written")
@@ -238,7 +239,8 @@ async def test_param_tree_handler_update(mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_update_exception(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames_written")
@@ -254,7 +256,8 @@ async def test_param_tree_handler_update_exception(mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_put(mocker: MockerFixture):
-    controller = mocker.MagicMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames")
@@ -267,7 +270,8 @@ async def test_param_tree_handler_put(mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_put_exception(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames")
