@@ -226,7 +226,7 @@ async def test_fp_create_plugin_sub_controllers():
 @pytest.mark.asyncio
 async def test_param_tree_handler_update(mocker: MockerFixture):
     controller = mocker.AsyncMock()
-    attr = mocker.MagicMock()
+    attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 

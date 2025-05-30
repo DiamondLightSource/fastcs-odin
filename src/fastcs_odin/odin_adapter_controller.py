@@ -51,7 +51,9 @@ class ParamTreeHandler(Handler):
                 raise ValueError(f"{parameter} not found in response:\n{response}")
 
             value = response.get(parameter)
-            await attr.set(value)
+            await attr.set(
+                attr.dtype(value)
+            )  # TODO: https://github.com/DiamondLightSource/FastCS/issues/159
         except Exception as e:
             logging.error("Update loop failed for %s:\n%s", self.path, e)
 
