@@ -4,7 +4,14 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from fastcs.attributes import AttrR, AttrRW, AttrW, Handler, Sender, Updater
+from fastcs.attributes import (
+    AttrHandlerR,
+    AttrHandlerRW,
+    AttrHandlerW,
+    AttrR,
+    AttrRW,
+    AttrW,
+)
 from fastcs.controller import BaseController, SubController
 from fastcs.util import snake_to_pascal
 
@@ -18,19 +25,26 @@ class AdapterResponseError(Exception): ...
 
 
 @dataclass
-class ParamTreeHandler(Handler):
+class ParamTreeHandler(AttrHandlerRW):
     path: str
     update_period: float | None = 0.2
     allowed_values: dict[int, str] | None = None
 
+    async def initialise(self, controller: BaseController):
+        assert isinstance(controller, OdinAdapterController)
+        self._controller = controller
+
+    @property
+    def controller(self) -> "OdinAdapterController":
+        return self._controller
+
     async def put(
         self,
-        controller: "OdinAdapterController",
         attr: AttrW[Any],
         value: Any,
     ) -> None:
         try:
-            response = await controller.connection.put(self.path, value)
+            response = await self.controller.connection.put(self.path, value)
             match response:
                 case {"error": error}:
                     raise AdapterResponseError(error)
@@ -39,11 +53,10 @@ class ParamTreeHandler(Handler):
 
     async def update(
         self,
-        controller: "OdinAdapterController",
         attr: AttrR[Any],
     ) -> None:
         try:
-            response = await controller.connection.get(self.path)
+            response = await self.controller.connection.get(self.path)
 
             # TODO: This would be nicer if the key was 'value' so we could match
             parameter = self.path.split("/")[-1]
@@ -57,7 +70,7 @@ class ParamTreeHandler(Handler):
 
 
 @dataclass
-class StatusSummaryUpdater(Updater):
+class StatusSummaryUpdater(AttrHandlerR):
     """Updater to accumulate underlying attributes into a high-level summary.
 
     Args:
@@ -76,9 +89,14 @@ class StatusSummaryUpdater(Updater):
     accumulator: Callable[[Iterable[Any]], float | int | bool | str]
     update_period: float | None = 0.2
 
-    async def update(self, controller: "OdinAdapterController", attr: AttrR):
+    async def initialise(self, controller):
+        self.controller = controller
+
+    async def update(self, attr: AttrR):
         values = []
-        for sub_controller in _filter_sub_controllers(controller, self.path_filter):
+        for sub_controller in _filter_sub_controllers(
+            self.controller, self.path_filter
+        ):
             sub_attribute: AttrR = sub_controller.attributes[self.attribute_name]  # type: ignore
             values.append(sub_attribute.get())
 
@@ -86,7 +104,7 @@ class StatusSummaryUpdater(Updater):
 
 
 @dataclass
-class ConfigFanSender(Sender):
+class ConfigFanSender(AttrHandlerW):
     """Handler to fan out puts to underlying Attributes.
 
     Args:
@@ -95,7 +113,7 @@ class ConfigFanSender(Sender):
 
     attributes: list[AttrW]
 
-    async def put(self, controller: "OdinAdapterController", attr: AttrW, value: Any):
+    async def put(self, attr: AttrW, value: Any):
         for attribute in self.attributes:
             await attribute.process(value)
 
