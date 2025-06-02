@@ -5,7 +5,6 @@ import pytest
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.datatypes import Bool, Float, Int
-from fastcs.transport.epics.ioc import EpicsIOC
 from pytest_mock import MockerFixture
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
@@ -226,26 +225,30 @@ async def test_fp_create_plugin_sub_controllers():
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_update(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 
     controller.connection.get.return_value = {"frames_written": 20}
-    await handler.update(controller, attr)
+    await handler.initialise(controller)
+    await handler.update(attr)
     attr.set.assert_called_once_with(20)
 
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_update_exception(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 
     controller.connection.get.return_value = {"frames_wroted": 20}
     error_mock = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
-    await handler.update(controller, attr)
+    await handler.initialise(controller)
+    await handler.update(attr)
     error_mock.assert_called_once_with(
         "Update loop failed for %s:\n%s", "hdf/frames_written", mocker.ANY
     )
@@ -253,26 +256,30 @@ async def test_param_tree_handler_update_exception(mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_put(mocker: MockerFixture):
-    controller = mocker.MagicMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames")
 
     # Test put
-    await handler.put(controller, attr, 10)
+    await handler.initialise(controller)
+    await handler.put(attr, 10)
     controller.connection.put.assert_called_once_with("hdf/frames", 10)
 
 
 @pytest.mark.asyncio
 async def test_param_tree_handler_put_exception(mocker: MockerFixture):
-    controller = mocker.AsyncMock()
+    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
+    controller.connection = mocker.AsyncMock()
     attr = mocker.MagicMock()
 
     handler = ParamTreeHandler("hdf/frames")
 
     controller.connection.put.return_value = {"error": "No, you can't do that"}
     error_mock = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
-    await handler.put(controller, attr, -1)
+    await handler.initialise(controller)
+    await handler.put(attr, -1)
     error_mock.assert_called_once_with(
         "Put %s = %s failed:\n%s", "hdf/frames", -1, mocker.ANY
     )
@@ -300,7 +307,8 @@ async def test_status_summary_updater(mocker: MockerFixture):
     handler = StatusSummaryUpdater(
         ["OD", ("FP",), re.compile("FP*"), "HDF"], "frames_written", sum
     )
-    await handler.update(controller, attr)
+    await handler.initialise(controller)
+    await handler.update(attr)
     attr.set.assert_called_once_with(100)
 
     handler = StatusSummaryUpdater(
@@ -308,11 +316,13 @@ async def test_status_summary_updater(mocker: MockerFixture):
     )
 
     hdf_controller.attributes["writing"].get.side_effect = [True, False]
-    await handler.update(controller, attr)
+    await handler.initialise(controller)
+    await handler.update(attr)
     attr.set.assert_called_with(True)
 
     hdf_controller.attributes["writing"].get.side_effect = [False, False]
-    await handler.update(controller, attr)
+    await handler.initialise(controller)
+    await handler.update(attr)
     attr.set.assert_called_with(False)
 
 
@@ -325,7 +335,8 @@ async def test_config_fan_sender(mocker: MockerFixture):
 
     handler = ConfigFanSender([attr1, attr2])
 
-    await handler.put(controller, attr, 10)
+    await handler.initialise(controller)
+    await handler.put(attr, 10)
     attr1.process.assert_called_once_with(10)
     attr2.process.assert_called_once_with(10)
     attr.set.assert_called_once_with(10)
@@ -392,26 +403,25 @@ async def test_param_handler_update(
     attr = fpc.attributes["fp_0_status_error"]
     assert isinstance(attr, AttrRW)
 
-    # This is done to set attr._update_callback
-    EpicsIOC(pv_prefix=expected_error, controller=fpc)  # type: ignore
-
     fpc.connection = mocker.AsyncMock()
     fpc.connection.get.return_value = {"error": invalid_value}
 
     handler = ParamTreeHandler("fp/0/status/error")
+    await handler.initialise(fpc)
     log_error = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
 
     # Currently values are cast to attr.dtype
-    await handler.update(fpc, attr)
+    await handler.update(attr)
     log_error.assert_not_called()
 
-    # This mock prevents casting to attr.dtype
-    attr._datatype = mocker.MagicMock(
-        validate=mocker.MagicMock(side_effect=lambda x: x),
-        dtype=mocker.MagicMock(side_effect=lambda x: x),
+    # This prevents the attr.dtype conversion
+    mocker.patch.object(
+        type(attr), "dtype", new_callable=mocker.PropertyMock, return_value=lambda x: x
     )
 
-    await handler.update(fpc, attr)
+    await handler.update(attr)
     log_error.assert_called_once()
     logged_args = log_error.call_args.args
-    assert f"'{expected_error}' object has no attribute 'encode'" in str(logged_args[2])
+    assert f"Value '{invalid_value}' is not of type <class 'str'>" in str(
+        logged_args[2]
+    )
