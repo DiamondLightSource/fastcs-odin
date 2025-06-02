@@ -227,7 +227,7 @@ async def test_fp_create_plugin_sub_controllers():
 async def test_param_tree_handler_update(mocker: MockerFixture):
     controller = OdinAdapterController(mocker.AsyncMock(), [], "")
     controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock()
+    attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 
@@ -241,7 +241,7 @@ async def test_param_tree_handler_update(mocker: MockerFixture):
 async def test_param_tree_handler_update_exception(mocker: MockerFixture):
     controller = OdinAdapterController(mocker.AsyncMock(), [], "")
     controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock()
+    attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 
@@ -283,6 +283,22 @@ async def test_param_tree_handler_put_exception(mocker: MockerFixture):
     error_mock.assert_called_once_with(
         "Put %s = %s failed:\n%s", "hdf/frames", -1, mocker.ANY
     )
+
+
+@pytest.mark.asyncio
+async def test_param_tree_handler_casts_value_to_attr_dtype(mocker: MockerFixture):
+    controller_mock = mocker.MagicMock()
+    get_mock = mocker.AsyncMock()
+    get_mock.return_value = {"error": ["error1", "error2"]}
+    controller_mock.connection.get = get_mock
+    attribute_mock = mocker.MagicMock()
+    set_mock = mocker.AsyncMock()
+    attribute_mock.set = set_mock
+    handler = ParamTreeHandler("fp/0/status/error")
+    handler._controller = controller_mock
+    await handler.update(attribute_mock)
+    attribute_mock.dtype.assert_called_once_with(["error1", "error2"])
+    set_mock.assert_called_once_with(attribute_mock.dtype.return_value)
 
 
 @pytest.mark.asyncio
