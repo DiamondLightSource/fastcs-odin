@@ -5,6 +5,7 @@ import pytest
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.datatypes import Bool, Float, Int
+from fastcs.transport.epics.ioc import EpicsIOC
 from pytest_mock import MockerFixture
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
@@ -238,7 +239,7 @@ async def test_param_tree_handler_update(mocker: MockerFixture):
 @pytest.mark.asyncio
 async def test_param_tree_handler_update_exception(mocker: MockerFixture):
     controller = mocker.AsyncMock()
-    attr = mocker.MagicMock()
+    attr = mocker.MagicMock(dtype=int)
 
     handler = ParamTreeHandler("hdf/frames_written")
 
@@ -367,3 +368,50 @@ async def test_frame_reciever_controllers():
     assert invalid_decoder_parameter not in decoder_controller.parameters
     # index, status, decoder parts removed from path
     assert decoder_controller.parameters[0]._path == ["packets_dropped"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "invalid_value, expected_error",
+    (
+        (["list"], "list"),
+        (None, "NoneType"),
+    ),
+)
+async def test_param_handler_update(
+    invalid_value, expected_error, mocker: MockerFixture
+):
+    parameters = [
+        OdinParameter(
+            uri=["fp", "0", "status", "error"],
+            metadata=OdinParameterMetadata(value="", type="str", writeable=True),
+        )
+    ]
+    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
+    fpc._create_attributes()
+    attr = fpc.attributes["fp_0_status_error"]
+    assert isinstance(attr, AttrRW)
+
+    # This is done to set attr._update_callback
+    EpicsIOC(pv_prefix=expected_error, controller=fpc)  # type: ignore
+
+    fpc.connection = mocker.AsyncMock()
+    fpc.connection.get.return_value = {"error": invalid_value}
+
+    handler = ParamTreeHandler("fp/0/status/error")
+    log_error = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
+
+    # Currently values are cast to attr.dtype
+    await handler.update(fpc, attr)
+    log_error.assert_not_called()
+
+    # This mock prevents casting to attr.dtype
+    attr._datatype = mocker.MagicMock(
+        validate=mocker.MagicMock(side_effect=lambda x: x),
+        dtype=mocker.MagicMock(side_effect=lambda x: x),
+    )
+
+    await handler.update(fpc, attr)
+    log_error.assert_called_once()
+    logged_args = log_error.call_args.args
+    assert f"'{expected_error}' object has no attribute 'encode'" in str(logged_args[2])
