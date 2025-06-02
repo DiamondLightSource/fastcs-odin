@@ -383,15 +383,13 @@ async def test_frame_reciever_controllers():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "invalid_value, expected_error",
+    "invalid_value",
     (
-        (["list"], "list"),
-        (None, "NoneType"),
+        ["list"],
+        None,
     ),
 )
-async def test_param_handler_update(
-    invalid_value, expected_error, mocker: MockerFixture
-):
+async def test_param_handler_update(invalid_value, mocker: MockerFixture):
     parameters = [
         OdinParameter(
             uri=["fp", "0", "status", "error"],
