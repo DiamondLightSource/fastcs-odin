@@ -1,3 +1,4 @@
+from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controller import Controller
 from fastcs.datatypes import Bool, Float, Int, String
@@ -7,7 +8,10 @@ from fastcs_odin.frame_processor import FrameProcessorAdapterController
 from fastcs_odin.frame_receiver import FrameReceiverAdapterController
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import (
+    OdinAdapterController,
+    StatusSummaryUpdater,
+)
 from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
 types = {"float": Float(), "int": Int(), "bool": Bool(), "str": String()}
@@ -22,6 +26,10 @@ class OdinController(Controller):
     """A root ``Controller`` for an odin control server."""
 
     API_PREFIX = "api/0.1"
+
+    writing: AttrR = AttrR(
+        Bool(), handler=StatusSummaryUpdater([("MW", "FP")], "writing", any)
+    )
 
     def __init__(self, settings: IPConnectionSettings) -> None:
         super().__init__()
