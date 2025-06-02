@@ -286,6 +286,52 @@ async def test_param_tree_handler_put_exception(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "invalid_value",
+    (
+        ["list"],
+        None,
+    ),
+)
+async def test_param_tree_handler_casts_value_to_attr_dtype(
+    invalid_value, mocker: MockerFixture
+):
+    parameters = [
+        OdinParameter(
+            uri=["fp", "0", "status", "error"],
+            metadata=OdinParameterMetadata(value="", type="str", writeable=True),
+        )
+    ]
+    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
+    fpc._create_attributes()
+    attr = fpc.attributes["fp_0_status_error"]
+    assert isinstance(attr, AttrRW)
+
+    fpc.connection = mocker.AsyncMock()
+    fpc.connection.get.return_value = {"error": invalid_value}
+
+    handler = ParamTreeHandler("fp/0/status/error")
+    await handler.initialise(fpc)
+    log_error = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
+
+    # Currently values are cast to attr.dtype
+    await handler.update(attr)
+    log_error.assert_not_called()
+
+    # This prevents the attr.dtype conversion
+    mocker.patch.object(
+        type(attr), "dtype", new_callable=mocker.PropertyMock, return_value=lambda x: x
+    )
+
+    await handler.update(attr)
+    log_error.assert_called_once()
+    logged_args = log_error.call_args.args
+    assert f"Value '{invalid_value}' is not of type <class 'str'>" in str(
+        logged_args[2]
+    )
+
+
+@pytest.mark.asyncio
 async def test_status_summary_updater(mocker: MockerFixture):
     controller = mocker.MagicMock()
     od_controller = mocker.MagicMock()
@@ -379,47 +425,3 @@ async def test_frame_reciever_controllers():
     assert invalid_decoder_parameter not in decoder_controller.parameters
     # index, status, decoder parts removed from path
     assert decoder_controller.parameters[0]._path == ["packets_dropped"]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "invalid_value",
-    (
-        ["list"],
-        None,
-    ),
-)
-async def test_param_handler_update(invalid_value, mocker: MockerFixture):
-    parameters = [
-        OdinParameter(
-            uri=["fp", "0", "status", "error"],
-            metadata=OdinParameterMetadata(value="", type="str", writeable=True),
-        )
-    ]
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
-    fpc._create_attributes()
-    attr = fpc.attributes["fp_0_status_error"]
-    assert isinstance(attr, AttrRW)
-
-    fpc.connection = mocker.AsyncMock()
-    fpc.connection.get.return_value = {"error": invalid_value}
-
-    handler = ParamTreeHandler("fp/0/status/error")
-    await handler.initialise(fpc)
-    log_error = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
-
-    # Currently values are cast to attr.dtype
-    await handler.update(attr)
-    log_error.assert_not_called()
-
-    # This prevents the attr.dtype conversion
-    mocker.patch.object(
-        type(attr), "dtype", new_callable=mocker.PropertyMock, return_value=lambda x: x
-    )
-
-    await handler.update(attr)
-    log_error.assert_called_once()
-    logged_args = log_error.call_args.args
-    assert f"Value '{invalid_value}' is not of type <class 'str'>" in str(
-        logged_args[2]
-    )
