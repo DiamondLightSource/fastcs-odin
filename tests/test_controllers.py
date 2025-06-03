@@ -328,7 +328,7 @@ async def test_status_summary_updater(mocker: MockerFixture):
     attr.set.assert_called_once_with(100)
 
     handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), "HDF"], "writing", any
+        ["OD", ("FP",), re.compile("FP*"), ("HDF",)], "writing", any
     )
 
     hdf_controller.attributes["writing"].get.side_effect = [True, False]
