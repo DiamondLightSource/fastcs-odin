@@ -343,6 +343,22 @@ async def test_status_summary_updater(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mock_sub_controller", ("FP", ("FP",), re.compile("FP")))
+async def test_status_summary_updater_raise_exception(
+    mock_sub_controller, mocker: MockerFixture
+):
+    controller = mocker.MagicMock()
+    attr = mocker.AsyncMock()
+    controller.get_sub_controllers.return_value = {"OD": mocker.MagicMock()}
+
+    handler = StatusSummaryUpdater(["OD", mock_sub_controller], "writing", any)
+    await handler.initialise(controller)
+
+    with pytest.raises(ValueError, match="not found"):
+        await handler.update(attr)
+
+
+@pytest.mark.asyncio
 async def test_config_fan_sender(mocker: MockerFixture):
     controller = mocker.MagicMock()
     attr = mocker.MagicMock(AttrRW)

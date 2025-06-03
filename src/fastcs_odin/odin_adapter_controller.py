@@ -152,15 +152,22 @@ def _filter_sub_controllers(
                     yield from _filter_sub_controllers(sub_controller, path_filter[1:])
 
         case pattern:
-            for key in sub_controller_map:
-                if pattern.match(key):
-                    sub_controller = sub_controller_map[key]
-                    if is_leaf:
-                        yield sub_controller
-                    else:
-                        yield from _filter_sub_controllers(
-                            sub_controller, path_filter[1:]
-                        )
+            sub_controllers = [
+                sub_controller_map[key]
+                for key in sub_controller_map
+                if pattern.match(key)
+            ]
+
+            if not sub_controllers:
+                raise ValueError(
+                    f"SubController matching {pattern} not found in {controller}"
+                )
+
+            for sub_controller in sub_controllers:
+                if is_leaf:
+                    yield sub_controller
+                else:
+                    yield from _filter_sub_controllers(sub_controller, path_filter[1:])
 
 
 class OdinAdapterController(SubController):
