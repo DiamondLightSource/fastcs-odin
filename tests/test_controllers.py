@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -161,7 +162,9 @@ async def test_controller_initialise(
 
 
 @pytest.mark.asyncio
-async def test_fp_create_plugin_sub_controllers():
+async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
+    mock_connection = mocker.AsyncMock()
+
     parameters = [
         OdinParameter(
             uri=["config", "ctrl_endpoint"],
@@ -180,7 +183,7 @@ async def test_fp_create_plugin_sub_controllers():
         ),
     ]
 
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1")
 
     await fpc._create_plugin_sub_controllers(["hdf"])
 
