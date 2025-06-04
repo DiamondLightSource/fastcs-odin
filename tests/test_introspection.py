@@ -48,8 +48,22 @@ async def test_fp_initialise(mocker: MockerFixture):
     async def get_plugins(idx: int):
         return response[str(idx)]["status"]["plugins"]
 
+    async def get_commands(idx: int):
+        return response[str(idx)]["command"]["hdf"]
+
     mock_connection = mocker.MagicMock()
-    mock_connection.get.side_effect = [get_plugins(0), get_plugins(1)]
+    mock_connection.get.side_effect = [
+        get_plugins(0),
+        get_commands(0),
+        get_commands(0),
+        get_commands(0),
+        get_commands(0),
+        get_plugins(1),
+        get_commands(1),
+        get_commands(1),
+        get_commands(1),
+        get_commands(1),
+    ]
 
     parameters = create_odin_parameters(response)
     controller = FrameProcessorAdapterController(mock_connection, parameters, "prefix")
