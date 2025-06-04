@@ -102,48 +102,47 @@ def _walk_odin_metadata(
         ):
             # Do not parse and yield any command attributes
             # They are handled by the individual controllers
-            pass
+            continue
+        # Branches - dict or list[dict] to recurse through
+        if isinstance(node_value, dict) and not is_metadata_object(node_value):
+            yield from _walk_odin_metadata(node_value, node_path)
+        elif (
+            isinstance(node_value, list)
+            and node_value  # Exclude parameters with an empty list as a value
+            and all(isinstance(m, dict) for m in node_value)
+        ):
+            for idx, sub_node in enumerate(node_value):
+                sub_node_path = node_path + [str(idx)]
+                yield from _walk_odin_metadata(sub_node, sub_node_path)
         else:
-            # Branches - dict or list[dict] to recurse through
-            if isinstance(node_value, dict) and not is_metadata_object(node_value):
-                yield from _walk_odin_metadata(node_value, node_path)
-            elif (
-                isinstance(node_value, list)
-                and node_value  # Exclude parameters with an empty list as a value
-                and all(isinstance(m, dict) for m in node_value)
-            ):
-                for idx, sub_node in enumerate(node_value):
-                    sub_node_path = node_path + [str(idx)]
-                    yield from _walk_odin_metadata(sub_node, sub_node_path)
-            else:
-                # Leaves
-                try:
-                    if isinstance(node_value, dict) and is_metadata_object(node_value):
+            # Leaves
+            try:
+                if isinstance(node_value, dict) and is_metadata_object(node_value):
+                    yield (
+                        node_path,
+                        OdinParameterMetadata.model_validate(node_value),
+                    )
+                elif isinstance(node_value, list):
+                    if "config" in node_path:
+                        # Split list into separate parameters so they can be set
+                        for idx, sub_node_value in enumerate(node_value):
+                            sub_node_path = node_path + [str(idx)]
+                            yield (
+                                sub_node_path,
+                                infer_metadata(sub_node_value, sub_node_path),
+                            )
+                    else:
+                        # Convert read-only list to a string for display
                         yield (
                             node_path,
-                            OdinParameterMetadata.model_validate(node_value),
+                            infer_metadata(str(node_value), node_path),
                         )
-                    elif isinstance(node_value, list):
-                        if "config" in node_path:
-                            # Split list into separate parameters so they can be set
-                            for idx, sub_node_value in enumerate(node_value):
-                                sub_node_path = node_path + [str(idx)]
-                                yield (
-                                    sub_node_path,
-                                    infer_metadata(sub_node_value, sub_node_path),
-                                )
-                        else:
-                            # Convert read-only list to a string for display
-                            yield (
-                                node_path,
-                                infer_metadata(str(node_value), node_path),
-                            )
 
-                    else:
-                        # TODO: This won't be needed when all parameters provide metadata
-                        yield (node_path, infer_metadata(node_value, node_path))
-                except ValidationError as e:
-                    logging.warning(f"Type not supported:\n{e}")
+                else:
+                    # TODO: This won't be needed when all parameters provide metadata
+                    yield (node_path, infer_metadata(node_value, node_path))
+            except ValidationError as e:
+                logging.warning(f"Type not supported:\n{e}")
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
