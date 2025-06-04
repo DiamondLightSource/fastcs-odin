@@ -13,7 +13,6 @@ from fastcs.attributes import (
     AttrW,
 )
 from fastcs.controller import BaseController, SubController
-from fastcs.cs_methods import Command
 from fastcs.util import snake_to_pascal
 
 from fastcs_odin.http_connection import HTTPConnection
@@ -201,19 +200,6 @@ class OdinAdapterController(SubController):
     async def initialise(self):
         self._process_parameters()
         self._create_attributes()
-        await self._create_commands()
-
-    async def _create_commands(self):
-        if len(self.path) == 3:
-            command_path = f"command/{self.path[2].lower()}"
-            command_response = await self.connection.get(
-                f"{self._api_prefix}/{command_path}/allowed"
-            )
-            if "allowed" in command_response:
-                command_names = command_response["allowed"]
-                assert isinstance(command_names, list)
-                for command_name in command_names:
-                    self.construct_command(command_name, command_path)
 
     def _process_parameters(self):
         """Hook to process ``OdinParameters`` before creating ``Attributes``.
@@ -222,14 +208,6 @@ class OdinAdapterController(SubController):
 
         """
         pass
-
-    def construct_command(self, command_name, command_path):
-        async def submit_command() -> None:
-            await self.connection.put(
-                f"{self._api_prefix}/{command_path}/execute", command_name
-            )
-
-        setattr(self, command_name, Command(submit_command))
 
     def _create_attributes(self):
         """Create controller ``Attributes`` from ``OdinParameters``."""
