@@ -97,9 +97,7 @@ def _walk_odin_metadata(
     for node_name, node_value in tree.items():
         node_path = path + [node_name]
 
-        if "command" in node_path and (
-            "allowed" in node_path or "execute" in node_path
-        ):
+        if "command" in node_path:
             # Do not parse and yield any command attributes
             # They are handled by the individual controllers
             continue
@@ -118,10 +116,7 @@ def _walk_odin_metadata(
             # Leaves
             try:
                 if isinstance(node_value, dict) and is_metadata_object(node_value):
-                    yield (
-                        node_path,
-                        OdinParameterMetadata.model_validate(node_value),
-                    )
+                    yield (node_path, OdinParameterMetadata.model_validate(node_value))
                 elif isinstance(node_value, list):
                     if "config" in node_path:
                         # Split list into separate parameters so they can be set
@@ -133,10 +128,7 @@ def _walk_odin_metadata(
                             )
                     else:
                         # Convert read-only list to a string for display
-                        yield (
-                            node_path,
-                            infer_metadata(str(node_value), node_path),
-                        )
+                        yield (node_path, infer_metadata(str(node_value), node_path))
 
                 else:
                     # TODO: This won't be needed when all parameters provide metadata
