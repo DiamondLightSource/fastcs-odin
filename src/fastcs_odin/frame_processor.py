@@ -10,7 +10,7 @@ from fastcs_odin.odin_adapter_controller import (
     StatusSummaryUpdater,
 )
 from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import OdinParameter, partition
+from fastcs_odin.util import AllowedCommandResponse, OdinParameter, partition
 
 
 class FrameProcessorController(OdinDataController):
@@ -102,11 +102,10 @@ class FrameProcessorPluginController(OdinAdapterController):
         command_response = await self.connection.get(
             f"{self._api_prefix}/{command_path}/allowed"
         )
-        if "allowed" in command_response:
-            command_names = command_response["allowed"]
-            assert isinstance(command_names, list)
-            for command_name in command_names:
-                self.construct_command(command_name, command_path)
+
+        commands = AllowedCommandResponse.model_validate(command_response)
+        for command in commands.allowed:
+            self.construct_command(command, command_path)
 
     def construct_command(self, command_name, command_path):
         async def submit_command() -> None:

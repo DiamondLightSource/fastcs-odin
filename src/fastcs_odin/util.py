@@ -41,6 +41,12 @@ class OdinParameterMetadata(BaseModel):
                 return String()
 
 
+class AllowedCommandResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allowed: list[str]
+    execute: str
+
+
 @dataclass
 class OdinParameter:
     uri: list[str]
