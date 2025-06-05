@@ -31,6 +31,10 @@ def test_one_node_fp():
     parameters = create_odin_parameters(response)
     assert len(parameters) == 97
 
+    # Assert no command parameters are created
+    for param in parameters:
+        assert "command" not in param.uri
+
 
 def test_two_node_fp():
     with (HERE / "input/two_node_fp_response.json").open() as f:
@@ -38,6 +42,10 @@ def test_two_node_fp():
 
     parameters = create_odin_parameters(response)
     assert len(parameters) == 190
+
+    # Assert no command parameters are created
+    for param in parameters:
+        assert "command" not in param.uri
 
 
 @pytest.mark.asyncio
