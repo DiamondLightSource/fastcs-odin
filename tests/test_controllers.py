@@ -327,7 +327,7 @@ async def test_status_summary_updater(mocker: MockerFixture):
     handler = StatusSummaryUpdater(
         ["OD", ("FP",), re.compile("FP*"), "HDF"],
         "frames_written",
-        sum,
+        sum,  # type: ignore
     )
 
     await handler.initialise(controller)
