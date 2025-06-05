@@ -41,7 +41,7 @@ def main(
     pass
 
 
-OdinIp = typer.Option("172.23.104.227", help="IP address of odin server")
+OdinIp = typer.Option("127.0.0.1", help="IP address of odin server")
 OdinPort = typer.Option(8888, help="Port of odin server")
 
 
