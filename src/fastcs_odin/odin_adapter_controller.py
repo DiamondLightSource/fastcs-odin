@@ -2,7 +2,7 @@ import logging
 import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from fastcs.attributes import (
     AttrHandlerR,
@@ -71,8 +71,12 @@ class ParamTreeHandler(AttrHandlerRW):
             logging.error("Update loop failed for %s:\n%s", self.path, e)
 
 
+In = TypeVar("In", float, int, bool, str)
+Out = TypeVar("Out", float, int, bool, str)
+
+
 @dataclass
-class StatusSummaryUpdater(AttrHandlerR):
+class StatusSummaryUpdater(AttrHandlerR, Generic[In, Out]):
     """Updater to accumulate underlying attributes into a high-level summary.
 
     Args:
@@ -88,20 +92,21 @@ class StatusSummaryUpdater(AttrHandlerR):
 
     path_filter: list[str | tuple[str, ...] | re.Pattern]
     attribute_name: str
-    accumulator: Callable[[Iterable[Any]], float | int | bool | str]
+    accumulator: Callable[[Iterable[In]], Out]
     update_period: float | None = 0.2
 
     async def initialise(self, controller):
         self.controller = controller
+        self.attributes: Sequence[AttrR[In]] = [
+            attr
+            for sub_controller in _filter_sub_controllers(
+                self.controller, self.path_filter
+            )
+            if isinstance(attr := sub_controller.attributes[self.attribute_name], AttrR)
+        ]
 
-    async def update(self, attr: AttrR):
-        values = []
-        for sub_controller in _filter_sub_controllers(
-            self.controller, self.path_filter
-        ):
-            sub_attribute: AttrR = sub_controller.attributes[self.attribute_name]  # type: ignore
-            values.append(sub_attribute.get())
-
+    async def update(self, attr: AttrR[Out]):
+        values = [attribute.get() for attribute in self.attributes]
         await attr.set(self.accumulator(values))
 
 
