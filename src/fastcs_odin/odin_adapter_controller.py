@@ -86,7 +86,7 @@ class StatusSummaryUpdater(AttrHandlerR):
         attribute and returns a summary value.
     """
 
-    path_filter: list[str | tuple[str] | re.Pattern]
+    path_filter: list[str | tuple[str, ...] | re.Pattern]
     attribute_name: str
     accumulator: Callable[[Iterable[Any]], float | int | bool | str]
     update_period: float | None = 0.2
@@ -124,37 +124,50 @@ class ConfigFanSender(AttrHandlerW):
 
 
 def _filter_sub_controllers(
-    controller: BaseController, path_filter: Sequence[str | tuple[str] | re.Pattern]
+    controller: BaseController,
+    path_filter: Sequence[str | tuple[str, ...] | re.Pattern],
 ) -> Iterable[SubController]:
     sub_controller_map = controller.get_sub_controllers()
-
-    if len(path_filter) == 1:
-        assert isinstance(path_filter[0], str)
-        yield sub_controller_map[path_filter[0]]
-        return
-
     step = path_filter[0]
+    is_leaf = len(path_filter) == 1
+
     match step:
         case str() as key:
             if key not in sub_controller_map:
                 raise ValueError(f"SubController {key} not found in {controller}")
+            sub_controller = sub_controller_map[key]
+            if is_leaf:
+                yield sub_controller
+            else:
+                yield from _filter_sub_controllers(sub_controller, path_filter[1:])
 
-            sub_controllers = (sub_controller_map[key],)
         case tuple() as keys:
             for key in keys:
                 if key not in sub_controller_map:
                     raise ValueError(f"SubController {key} not found in {controller}")
+                sub_controller = sub_controller_map[key]
+                if is_leaf:
+                    yield sub_controller
+                else:
+                    yield from _filter_sub_controllers(sub_controller, path_filter[1:])
 
-            sub_controllers = tuple(sub_controller_map[k] for k in keys)
         case pattern:
-            sub_controllers = tuple(
-                sub_controller_map[k]
-                for k in sub_controller_map.keys()
-                if pattern.match(k)
-            )
+            sub_controllers = [
+                sub_controller_map[key]
+                for key in sub_controller_map
+                if pattern.match(key)
+            ]
 
-    for sub_controller in sub_controllers:
-        yield from _filter_sub_controllers(sub_controller, path_filter[1:])
+            if not sub_controllers:
+                raise ValueError(
+                    f"SubController matching {pattern} not found in {controller}"
+                )
+
+            for sub_controller in sub_controllers:
+                if is_leaf:
+                    yield sub_controller
+                else:
+                    yield from _filter_sub_controllers(sub_controller, path_filter[1:])
 
 
 class OdinAdapterController(SubController):

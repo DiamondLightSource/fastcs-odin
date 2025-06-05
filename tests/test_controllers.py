@@ -328,7 +328,7 @@ async def test_status_summary_updater(mocker: MockerFixture):
     attr.set.assert_called_once_with(100)
 
     handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), "HDF"], "writing", any
+        ["OD", ("FP",), re.compile("FP*"), ("HDF",)], "writing", any
     )
 
     hdf_controller.attributes["writing"].get.side_effect = [True, False]
@@ -340,6 +340,22 @@ async def test_status_summary_updater(mocker: MockerFixture):
     await handler.initialise(controller)
     await handler.update(attr)
     attr.set.assert_called_with(False)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_sub_controller", ("FP", ("FP",), re.compile("FP")))
+async def test_status_summary_updater_raise_exception(
+    mock_sub_controller, mocker: MockerFixture
+):
+    controller = mocker.MagicMock()
+    attr = mocker.AsyncMock()
+    controller.get_sub_controllers.return_value = {"OD": mocker.MagicMock()}
+
+    handler = StatusSummaryUpdater(["OD", mock_sub_controller], "writing", any)
+    await handler.initialise(controller)
+
+    with pytest.raises(ValueError, match="not found"):
+        await handler.update(attr)
 
 
 @pytest.mark.asyncio
