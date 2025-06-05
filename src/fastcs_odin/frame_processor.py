@@ -56,7 +56,7 @@ class FrameProcessorController(OdinDataController):
 class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "frames_written", sum),
+        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "frames_written", sum),  # type: ignore
     )
     writing: AttrR = AttrR(
         Bool(),
