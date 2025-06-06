@@ -58,7 +58,7 @@ class OdinParameter:
     @property
     def name(self) -> str:
         """Unique name of parameter."""
-        path = [step for step in self.path if step != "config" and "status"]
+        path = [step for step in self.path if step not in {"config", "status"}]
         if path[0].isdigit():
             path = path[1:] + [path[0]]
         return "_".join(path)
