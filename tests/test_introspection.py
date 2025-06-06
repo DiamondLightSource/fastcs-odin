@@ -268,3 +268,23 @@ def test_create_odin_parameters():
 
     metadata_config = OdinParameterMetadata(value=True, type="bool", writeable=False)
     assert parameters[3] == OdinParameter(uri=["test"], metadata=metadata_config)
+
+
+def test_parameters_with_leading_path_digit_is_moved_to_end_of_name():
+    with (HERE / "input/one_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    parameters = create_odin_parameters(response)
+    for parameter in parameters:
+        if parameter.path[0].isdigit():
+            assert not parameter.name[0].isdigit()
+            assert parameter.name[-1] == parameter.path[0]
+
+
+def test_parameters_with_status_and_config_in_path_removed_from_name():
+    with (HERE / "input/one_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    parameters = create_odin_parameters(response)
+    for parameter in parameters:
+        assert "status_" not in parameter.name and "config_" not in parameter.name
