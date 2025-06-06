@@ -185,6 +185,19 @@
                     }
                 }
             }
+        },
+        "command": {
+            "dummy": {
+                "allowed": [],
+                "execute": ""
+            },
+            "hdf": {
+                "allowed": [
+                    "command1",
+                    "command2"
+                ],
+                "execute": ""
+            }
         }
     }
 }

@@ -2,14 +2,16 @@ import re
 from collections.abc import Sequence
 
 from fastcs.attributes import AttrR
+from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
+from pydantic import ValidationError
 
 from fastcs_odin.odin_adapter_controller import (
     OdinAdapterController,
     StatusSummaryUpdater,
 )
 from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import OdinParameter, partition
+from fastcs_odin.util import AllowedCommandResponse, OdinParameter, partition
 
 
 class FrameProcessorController(OdinDataController):
@@ -78,6 +80,7 @@ class FrameProcessorPluginController(OdinAdapterController):
     """SubController for a plugin in a frameProcessor application."""
 
     async def initialise(self):
+        await self._create_commands()
         if any("dataset" in p.path for p in self.parameters):
 
             def __dataset_parameter(param: OdinParameter):
@@ -94,6 +97,27 @@ class FrameProcessorPluginController(OdinAdapterController):
                 await dataset_controller.initialise()
 
         return await super().initialise()
+
+    async def _create_commands(self):
+        command_path = f"command/{self.path[-1].lower()}"
+        command_response = await self.connection.get(
+            f"{self._api_prefix}/{command_path}/allowed"
+        )
+
+        try:
+            commands = AllowedCommandResponse.model_validate(command_response)
+            for command in commands.allowed:
+                self.construct_command(command, command_path)
+        except ValidationError:
+            pass
+
+    def construct_command(self, command_name, command_path):
+        async def submit_command() -> None:
+            await self.connection.put(
+                f"{self._api_prefix}/{command_path}/execute", command_name
+            )
+
+        setattr(self, command_name, Command(submit_command))
 
     def _process_parameters(self):
         for parameter in self.parameters:
