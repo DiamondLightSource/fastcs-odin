@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from fastcs.attributes import AttrR
 from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
+from pydantic import ValidationError
 
 from fastcs_odin.odin_adapter_controller import (
     OdinAdapterController,
@@ -103,9 +104,12 @@ class FrameProcessorPluginController(OdinAdapterController):
             f"{self._api_prefix}/{command_path}/allowed"
         )
 
-        commands = AllowedCommandResponse.model_validate(command_response)
-        for command in commands.allowed:
-            self.construct_command(command, command_path)
+        try:
+            commands = AllowedCommandResponse.model_validate(command_response)
+            for command in commands.allowed:
+                self.construct_command(command, command_path)
+        except ValidationError:
+            pass
 
     def construct_command(self, command_name, command_path):
         async def submit_command() -> None:

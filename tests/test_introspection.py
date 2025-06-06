@@ -57,7 +57,7 @@ async def test_fp_initialise(mocker: MockerFixture):
         return response[str(idx)]["status"]["plugins"]
 
     async def get_commands(idx: int):
-        return response[str(idx)]["command"]["hdf"]
+        return {"allowed": response[str(idx)]["command"]["hdf"]["allowed"]}
 
     mock_connection = mocker.MagicMock()
     mock_connection.get.side_effect = [
