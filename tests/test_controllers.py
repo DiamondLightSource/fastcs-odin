@@ -70,6 +70,7 @@ async def test_create_commands(mocker: MockerFixture):
 
     mock_connection.get.side_effect = [
         {"allowed": response[str(0)]["command"]["hdf"]["allowed"]},
+        {"response": "No commands, path invalid"},
     ]
 
     controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
@@ -80,6 +81,11 @@ async def test_create_commands(mocker: MockerFixture):
     # Call the command methods that have been bound to the controller
     await controller.command1()  # type: ignore
     await controller.command2()  # type: ignore
+
+    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
+    controller._path = ["offset"]
+
+    await controller._create_commands()
 
 
 def test_fp_process_parameters():
