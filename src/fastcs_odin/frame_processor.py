@@ -11,7 +11,7 @@ from fastcs_odin.odin_adapter_controller import (
     StatusSummaryUpdater,
 )
 from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import AllowedCommandResponse, OdinParameter, partition
+from fastcs_odin.util import AllowedCommandsResponse, OdinParameter, partition
 
 
 class FrameProcessorController(OdinDataController):
@@ -81,6 +81,23 @@ class FrameProcessorPluginController(OdinAdapterController):
 
     async def initialise(self):
         await self._create_commands()
+        await self._create_dataset_controllers()
+        return await super().initialise()
+
+    async def _create_commands(self):
+        plugin_name = self.path[-1].lower()
+        command_response = await self.connection.get(
+            f"{self._api_prefix}/command/{plugin_name}/allowed"
+        )
+
+        try:
+            commands = AllowedCommandsResponse.model_validate(command_response)
+            for command in commands.allowed:
+                self._construct_command(command, plugin_name)
+        except ValidationError:
+            pass
+
+    async def _create_dataset_controllers(self):
         if any("dataset" in p.path for p in self.parameters):
 
             def __dataset_parameter(param: OdinParameter):
@@ -96,25 +113,10 @@ class FrameProcessorPluginController(OdinAdapterController):
                 self.register_sub_controller("DS", dataset_controller)
                 await dataset_controller.initialise()
 
-        return await super().initialise()
-
-    async def _create_commands(self):
-        command_path = f"command/{self.path[-1].lower()}"
-        command_response = await self.connection.get(
-            f"{self._api_prefix}/{command_path}/allowed"
-        )
-
-        try:
-            commands = AllowedCommandResponse.model_validate(command_response)
-            for command in commands.allowed:
-                self.construct_command(command, command_path)
-        except ValidationError:
-            pass
-
-    def construct_command(self, command_name, command_path):
+    def _construct_command(self, command_name, plugin_name):
         async def submit_command() -> None:
             await self.connection.put(
-                f"{self._api_prefix}/{command_path}/execute", command_name
+                f"{self._api_prefix}/command/{plugin_name}/execute", command_name
             )
 
         setattr(self, command_name, Command(submit_command))

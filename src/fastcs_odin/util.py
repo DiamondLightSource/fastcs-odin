@@ -41,7 +41,7 @@ class OdinParameterMetadata(BaseModel):
                 return String()
 
 
-class AllowedCommandResponse(BaseModel):
+class AllowedCommandsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     allowed: list[str]
 
