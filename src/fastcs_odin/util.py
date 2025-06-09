@@ -139,7 +139,10 @@ def _walk_odin_metadata(
                     # TODO: This won't be needed when all parameters provide metadata
                     yield (node_path, infer_metadata(node_value, node_path))
             except ValidationError as e:
-                logging.warning(f"Type not supported:\n{e}")
+                logging.warning(
+                    f"Type not supported for path {node_path} "
+                    f"with value {node_value}:\n{e}"
+                )
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
