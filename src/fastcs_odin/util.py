@@ -41,6 +41,11 @@ class OdinParameterMetadata(BaseModel):
                 return String()
 
 
+class AllowedCommandsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allowed: list[str]
+
+
 @dataclass
 class OdinParameter:
     uri: list[str]
@@ -97,6 +102,10 @@ def _walk_odin_metadata(
     for node_name, node_value in tree.items():
         node_path = path + [node_name]
 
+        if "command" in node_path:
+            # Do not parse and yield any command attributes
+            # They are handled by the individual controllers
+            continue
         # Branches - dict or list[dict] to recurse through
         if isinstance(node_value, dict) and not is_metadata_object(node_value):
             yield from _walk_odin_metadata(node_value, node_path)
