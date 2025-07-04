@@ -2,6 +2,7 @@ from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controller import Controller
 from fastcs.datatypes import Bool, Float, Int, String
+from fastcs.util import snake_to_pascal
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import FrameProcessorAdapterController
@@ -60,7 +61,9 @@ class OdinController(Controller):
             adapter_controller = self._create_adapter_controller(
                 self.connection, create_odin_parameters(response), adapter, module
             )
-            self.register_sub_controller(adapter.upper(), adapter_controller)
+            self.register_sub_controller(
+                snake_to_pascal(adapter).upper(), adapter_controller
+            )
             await adapter_controller.initialise()
 
         await self.connection.close()
