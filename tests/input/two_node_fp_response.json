@@ -197,6 +197,19 @@
                     }
                 }
             }
+        },
+        "command": {
+            "dummy": {
+                "allowed": [],
+                "execute": ""
+            },
+            "hdf": {
+                "allowed": [
+                    "command1",
+                    "command2"
+                ],
+                "execute": ""
+            }
         }
     },
     "1": {
@@ -350,6 +363,19 @@
                         "input": ""
                     }
                 }
+            }
+        },
+        "command": {
+            "dummy": {
+                "allowed": [],
+                "execute": ""
+            },
+            "hdf": {
+                "allowed": [
+                    "command1",
+                    "command2"
+                ],
+                "execute": ""
             }
         }
     }

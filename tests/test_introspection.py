@@ -31,6 +31,10 @@ def test_one_node_fp():
     parameters = create_odin_parameters(response)
     assert len(parameters) == 97
 
+    # Assert no command parameters are created
+    for param in parameters:
+        assert "command" not in param.uri
+
 
 def test_two_node_fp():
     with (HERE / "input/two_node_fp_response.json").open() as f:
@@ -38,6 +42,10 @@ def test_two_node_fp():
 
     parameters = create_odin_parameters(response)
     assert len(parameters) == 190
+
+    # Assert no command parameters are created
+    for param in parameters:
+        assert "command" not in param.uri
 
 
 @pytest.mark.asyncio
@@ -48,8 +56,22 @@ async def test_fp_initialise(mocker: MockerFixture):
     async def get_plugins(idx: int):
         return response[str(idx)]["status"]["plugins"]
 
+    async def get_commands(idx: int):
+        return {"allowed": response[str(idx)]["command"]["hdf"]["allowed"]}
+
     mock_connection = mocker.MagicMock()
-    mock_connection.get.side_effect = [get_plugins(0), get_plugins(1)]
+    mock_connection.get.side_effect = [
+        get_plugins(0),
+        get_commands(0),
+        get_commands(0),
+        get_commands(0),
+        get_commands(0),
+        get_plugins(1),
+        get_commands(1),
+        get_commands(1),
+        get_commands(1),
+        get_commands(1),
+    ]
 
     parameters = create_odin_parameters(response)
     controller = FrameProcessorAdapterController(mock_connection, parameters, "prefix")

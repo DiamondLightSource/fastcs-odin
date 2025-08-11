@@ -1,3 +1,4 @@
+import json
 import re
 from functools import partial
 from pathlib import Path
@@ -60,6 +61,32 @@ def test_create_attributes():
             pass
         case _:
             pytest.fail("Controller Attributes not as expected")
+
+
+@pytest.mark.asyncio
+async def test_create_commands(mocker: MockerFixture):
+    mock_connection = mocker.AsyncMock()
+    with (HERE / "input/two_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection.get.side_effect = [
+        {"allowed": response[str(0)]["command"]["hdf"]["allowed"]},
+        {"response": "No commands, path invalid"},
+    ]
+
+    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
+    controller._path = ["hdf"]
+
+    await controller._create_commands()
+
+    # Call the command methods that have been bound to the controller
+    await controller.command1()  # type: ignore
+    await controller.command2()  # type: ignore
+
+    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
+    controller._path = ["offset"]
+
+    await controller._create_commands()
 
 
 def test_fp_process_parameters():
@@ -162,7 +189,15 @@ async def test_controller_initialise(
 
 
 @pytest.mark.asyncio
-async def test_fp_create_plugin_sub_controllers():
+async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
+    mock_connection = mocker.AsyncMock()
+    with (HERE / "input/two_node_fp_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection.get.side_effect = [
+        {"allowed": response[str(0)]["command"]["hdf"]["allowed"]},
+    ]
+
     parameters = [
         OdinParameter(
             uri=["config", "ctrl_endpoint"],
@@ -181,7 +216,7 @@ async def test_fp_create_plugin_sub_controllers():
         ),
     ]
 
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1")
 
     await fpc._create_plugin_sub_controllers(["hdf"])
 

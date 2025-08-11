@@ -41,6 +41,11 @@ class OdinParameterMetadata(BaseModel):
                 return String()
 
 
+class AllowedCommandsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allowed: list[str]
+
+
 @dataclass
 class OdinParameter:
     uri: list[str]
@@ -97,6 +102,10 @@ def _walk_odin_metadata(
     for node_name, node_value in tree.items():
         node_path = path + [node_name]
 
+        if "command" in node_path:
+            # Do not parse and yield any command attributes
+            # They are handled by the individual controllers
+            continue
         # Branches - dict or list[dict] to recurse through
         if isinstance(node_value, dict) and not is_metadata_object(node_value):
             yield from _walk_odin_metadata(node_value, node_path)
@@ -130,7 +139,10 @@ def _walk_odin_metadata(
                     # TODO: This won't be needed when all parameters provide metadata
                     yield (node_path, infer_metadata(node_value, node_path))
             except ValidationError as e:
-                logging.warning(f"Type not supported:\n{e}")
+                logging.warning(
+                    f"Type not supported for path {node_path} "
+                    f"with value {node_value}:\n{e}"
+                )
 
 
 def infer_metadata(parameter: Any, uri: list[str]):
