@@ -1,5 +1,6 @@
 import re
 from collections.abc import Sequence
+from functools import partial
 
 from fastcs.attributes import AttrR
 from fastcs.datatypes import Bool, Int
@@ -56,7 +57,9 @@ class FrameProcessorController(OdinDataController):
 class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "frames_written", sum),  # type: ignore
+        handler=StatusSummaryUpdater(
+            [re.compile("FP*"), "HDF"], "frames_written", partial(sum, start=0)
+        ),
     )
     writing: AttrR = AttrR(
         Bool(),

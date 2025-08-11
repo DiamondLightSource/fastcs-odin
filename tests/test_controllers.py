@@ -1,4 +1,5 @@
 import re
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -327,7 +328,7 @@ async def test_status_summary_updater(mocker: MockerFixture):
     handler = StatusSummaryUpdater(
         ["OD", ("FP",), re.compile("FP*"), "HDF"],
         "frames_written",
-        sum,  # type: ignore
+        partial(sum, start=0),
     )
 
     await handler.initialise(controller)
