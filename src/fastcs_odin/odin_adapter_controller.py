@@ -105,7 +105,7 @@ class StatusSummaryUpdater(AttrHandlerR, Generic[In, Out]):
             if isinstance(attr := sub_controller.attributes[self.attribute_name], AttrR)
         ]
 
-    async def update(self, attr: AttrR):  # type: ignore
+    async def update(self, attr: AttrR):
         values = [attribute.get() for attribute in self.attributes]
         await attr.set(self.accumulator(values))
 
