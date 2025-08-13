@@ -1,5 +1,6 @@
 import json
 import re
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -353,11 +354,18 @@ async def test_status_summary_updater(mocker: MockerFixture):
     }
     fpx_controller.get_sub_controllers.return_value = {"HDF": hdf_controller}
 
-    hdf_controller.attributes["frames_written"].get.return_value = 50
+    hdf_controller.attributes = {}
+
+    mock_frames_written = mocker.create_autospec(AttrR)
+    mock_frames_written.get.return_value = 50
+    hdf_controller.attributes["frames_written"] = mock_frames_written
 
     handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), "HDF"], "frames_written", sum
+        ["OD", ("FP",), re.compile("FP*"), "HDF"],
+        "frames_written",
+        partial(sum, start=0),
     )
+
     await handler.initialise(controller)
     await handler.update(attr)
     attr.set.assert_called_once_with(100)
@@ -366,7 +374,10 @@ async def test_status_summary_updater(mocker: MockerFixture):
         ["OD", ("FP",), re.compile("FP*"), ("HDF",)], "writing", any
     )
 
-    hdf_controller.attributes["writing"].get.side_effect = [True, False]
+    mock_writing = mocker.create_autospec(AttrR)
+    mock_writing.get.side_effect = [True, False]
+    hdf_controller.attributes["writing"] = mock_writing
+
     await handler.initialise(controller)
     await handler.update(attr)
     attr.set.assert_called_with(True)
@@ -383,14 +394,11 @@ async def test_status_summary_updater_raise_exception(
     mock_sub_controller, mocker: MockerFixture
 ):
     controller = mocker.MagicMock()
-    attr = mocker.AsyncMock()
     controller.get_sub_controllers.return_value = {"OD": mocker.MagicMock()}
 
     handler = StatusSummaryUpdater(["OD", mock_sub_controller], "writing", any)
-    await handler.initialise(controller)
-
     with pytest.raises(ValueError, match="not found"):
-        await handler.update(attr)
+        await handler.initialise(controller)
 
 
 @pytest.mark.asyncio
