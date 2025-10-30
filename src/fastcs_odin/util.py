@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal, TypeVar
 
-from fastcs.controller import BaseController, SubController
+from fastcs.controller import BaseController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -195,16 +195,12 @@ def partition(
     return truthy, falsy
 
 
-def get_all_sub_controllers(
-    controller: BaseController,
-) -> list[SubController]:
+def get_all_sub_controllers(controller: BaseController) -> list[BaseController]:
     return list(_walk_sub_controllers(controller))
 
 
-def _walk_sub_controllers(
-    controller: BaseController,
-) -> Iterable[SubController]:
-    for sub_controller in controller.get_sub_controllers().values():
+def _walk_sub_controllers(controller: BaseController) -> Iterable[BaseController]:
+    for sub_controller in controller.sub_controllers.values():
         yield sub_controller
         yield from _walk_sub_controllers(sub_controller)
 

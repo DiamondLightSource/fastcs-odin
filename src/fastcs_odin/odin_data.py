@@ -2,10 +2,9 @@ import logging
 
 from fastcs.attributes import AttrW
 
-from fastcs_odin.odin_adapter_controller import (
-    ConfigFanSender,
-    OdinAdapterController,
-)
+from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
+from fastcs_odin.io.status_summary_attribute_io import initialise_summary_attributes
+from fastcs_odin.odin_adapter_controller import OdinAdapterController
 from fastcs_odin.util import OdinParameter, get_all_sub_controllers, partition
 
 
@@ -50,14 +49,16 @@ class OdinDataAdapterController(OdinAdapterController):
                 self.connection,
                 fp_parameters,
                 f"{self._api_prefix}/{idx}",
+                self._ios,
             )
-            self.register_sub_controller(
+            self.add_sub_controller(
                 f"{self._subcontroller_label}{idx}", adapter_controller
             )
             await adapter_controller.initialise()
 
         self._create_attributes()
         self._create_config_fan_attributes()
+        initialise_summary_attributes(self)
 
     def _create_config_fan_attributes(self):
         """Search for config attributes in sub controllers to create fan out PVs."""
@@ -93,5 +94,5 @@ class OdinDataAdapterController(OdinAdapterController):
             self.attributes[parameter.name] = sub_attributes[0].__class__(
                 sub_attributes[0].datatype,
                 group=sub_attributes[0].group,
-                handler=ConfigFanSender(sub_attributes),
+                io_ref=ConfigFanAttributeIORef(sub_attributes),
             )
