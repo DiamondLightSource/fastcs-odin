@@ -16,9 +16,9 @@ class FrameReceiverController(OdinDataController):
             self.parameters, __decoder_parameter
         )
         decoder_controller = FrameReceiverDecoderController(
-            self.connection, decoder_parameters, f"{self._api_prefix}"
+            self.connection, decoder_parameters, f"{self._api_prefix}", self._ios
         )
-        self.register_sub_controller("DECODER", decoder_controller)
+        self.add_sub_controller("DECODER", decoder_controller)
         await decoder_controller.initialise()
         self._create_attributes()
 

@@ -7,10 +7,8 @@ from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
 from pydantic import ValidationError
 
-from fastcs_odin.odin_adapter_controller import (
-    OdinAdapterController,
-    StatusSummaryUpdater,
-)
+from fastcs_odin.io.status_summary_attribute_io import StatusSummaryAttributeIORef
+from fastcs_odin.odin_adapter_controller import OdinAdapterController
 from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
 from fastcs_odin.util import AllowedCommandsResponse, OdinParameter, partition
 
@@ -51,21 +49,22 @@ class FrameProcessorController(OdinDataController):
                 self.connection,
                 plugin_parameters,
                 f"{self._api_prefix}",
+                self._ios,
             )
-            self.register_sub_controller(plugin.upper(), plugin_controller)
+            self.add_sub_controller(plugin.upper(), plugin_controller)
             await plugin_controller.initialise()
 
 
 class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
-        handler=StatusSummaryUpdater(
+        io_ref=StatusSummaryAttributeIORef(
             [re.compile("FP*"), "HDF"], "frames_written", partial(sum, start=0)
         ),
     )
     writing: AttrR = AttrR(
         Bool(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "writing", any),
+        io_ref=StatusSummaryAttributeIORef([re.compile("FP*"), "HDF"], "writing", any),
     )
     _unique_config = [
         "rank",
@@ -111,9 +110,12 @@ class FrameProcessorPluginController(OdinAdapterController):
             )
             if dataset_parameters:
                 dataset_controller = FrameProcessorDatasetController(
-                    self.connection, dataset_parameters, f"{self._api_prefix}"
+                    self.connection,
+                    dataset_parameters,
+                    f"{self._api_prefix}",
+                    self._ios,
                 )
-                self.register_sub_controller("DS", dataset_controller)
+                self.add_sub_controller("DS", dataset_controller)
                 await dataset_controller.initialise()
 
     def _construct_command(self, command_name, plugin_name):
