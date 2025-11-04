@@ -135,6 +135,13 @@ class FrameProcessorPluginController(OdinAdapterController):
             # Remove plugin name included in controller base path
             parameter.set_path(parameter.path[1:])
 
+            # Handle clash between status and config in FileWriterPlugin
+            # TODO: https://github.com/odin-detector/odin-data/issues/426
+            if parameter.uri == ["status", "hdf", "file_path"]:
+                parameter.set_path(["current_file_path"])
+            elif parameter.uri == ["status", "hdf", "acquisition_id"]:
+                parameter.set_path(["current_acquisition_id"])
+
 
 class FrameProcessorDatasetController(OdinAdapterController):
     def _process_parameters(self):
