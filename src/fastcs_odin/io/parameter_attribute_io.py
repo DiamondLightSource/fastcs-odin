@@ -4,11 +4,11 @@ from fastcs.attribute_io import AttributeIO
 from fastcs.attribute_io_ref import AttributeIORef
 from fastcs.attributes import AttrR, AttrW
 from fastcs.datatypes import T
-from fastcs.logging import logger as _logger
+from fastcs.logging import bind_logger
 
 from fastcs_odin.http_connection import HTTPConnection, ValueType
 
-logger = _logger.bind(logger_name=__name__)
+logger = bind_logger(logger_name=__name__)
 
 
 class AdapterResponseError(Exception): ...
@@ -41,6 +41,7 @@ class ParameterTreeAttributeIO(AttributeIO[T, ParameterTreeAttributeIORef]):
 
     async def send(self, attr: AttrW[T, ParameterTreeAttributeIORef], value: T) -> None:
         assert isinstance(value, ValueType)
+        logger.info("Sending parameter", path=attr.io_ref.path, value=value)
         response = await self._connection.put(attr.io_ref.path, value)
 
         match response:
