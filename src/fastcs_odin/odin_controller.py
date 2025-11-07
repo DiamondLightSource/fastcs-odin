@@ -1,13 +1,7 @@
-import asyncio
-import re
-from collections.abc import Sequence
-from functools import cached_property
-
 from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controller import Controller
 from fastcs.datatypes import Bool, Float, Int, String
-from fastcs.wrappers import command
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import FrameProcessorAdapterController
@@ -17,7 +11,6 @@ from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.odin_adapter_controller import (
     OdinAdapterController,
     StatusSummaryUpdater,
-    _filter_sub_controllers,
 )
 from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
@@ -42,40 +35,6 @@ class OdinController(Controller):
         super().__init__()
 
         self.connection = HTTPConnection(settings.ip, settings.port)
-
-    def _collect_commands(
-        self,
-        path_filter: Sequence[str | tuple[str, ...] | re.Pattern],
-        command_name: str,
-    ):
-        commands = []
-
-        controllers = list(_filter_sub_controllers(self, path_filter))
-
-        for controller in controllers:
-            if cmd := getattr(controller, command_name, None):
-                commands.append(cmd)
-        return commands
-
-    @cached_property
-    def _start_writing_commands(self):
-        return self._collect_commands(("FP", re.compile("FP*"), "HDF"), "start_writing")
-
-    @cached_property
-    def _stop_writing_commands(self):
-        return self._collect_commands(("FP", re.compile("FP*"), "HDF"), "stop_writing")
-
-    @command()
-    async def start_writing(self) -> None:
-        await asyncio.gather(
-            *(start_writing() for start_writing in self._start_writing_commands)
-        )
-
-    @command()
-    async def stop_writing(self) -> None:
-        await asyncio.gather(
-            *(stop_writing() for stop_writing in self._stop_writing_commands)
-        )
 
     async def initialise(self) -> None:
         self.connection.open()
