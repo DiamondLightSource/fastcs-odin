@@ -97,13 +97,19 @@ class StatusSummaryUpdater(AttrHandlerR, Generic[In, Out]):
 
     async def initialise(self, controller):
         self.controller = controller
-        self.attributes: Sequence[AttrR[In]] = [
-            attr
-            for sub_controller in _filter_sub_controllers(
-                self.controller, self.path_filter
-            )
-            if isinstance(attr := sub_controller.attributes[self.attribute_name], AttrR)
-        ]
+        self.attributes: Sequence[AttrR[In]] = []
+        for sub_controller in _filter_sub_controllers(
+            self.controller, self.path_filter
+        ):
+            try:
+                attr = sub_controller.attributes[self.attribute_name]
+            except KeyError as err:
+                raise KeyError(
+                    f"Sub controller {sub_controller} "
+                    f"does not have attribute '{self.attribute_name}'."
+                ) from err
+            if isinstance(attr, AttrR):
+                self.attributes.append(attr)
 
     async def update(self, attr: AttrR):
         values = [attribute.get() for attribute in self.attributes]
