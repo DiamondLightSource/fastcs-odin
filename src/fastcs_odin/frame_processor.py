@@ -103,7 +103,7 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
 
     @cached_property
     def _start_writing_commands(self):
-        return self._collect_commands((re.compile("FP*"), "HDF"), "hi")
+        return self._collect_commands((re.compile("FP*"), "HDF"), "start_writing")
 
     @cached_property
     def _stop_writing_commands(self):
