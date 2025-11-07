@@ -390,7 +390,7 @@ async def test_status_summary_updater(mocker: MockerFixture):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_sub_controller", ("FP", ("FP",), re.compile("FP")))
-async def test_status_summary_updater_raise_exception(
+async def test_status_summary_updater_raise_exception_if_controller_not_found(
     mock_sub_controller, mocker: MockerFixture
 ):
     controller = mocker.MagicMock()
@@ -398,6 +398,20 @@ async def test_status_summary_updater_raise_exception(
 
     handler = StatusSummaryUpdater(["OD", mock_sub_controller], "writing", any)
     with pytest.raises(ValueError, match="not found"):
+        await handler.initialise(controller)
+
+
+@pytest.mark.asyncio
+async def test_status_summary_updater_raise_exception_if_attribute_not_found(
+    mocker: MockerFixture,
+):
+    controller = mocker.MagicMock()
+    controller.get_sub_controllers.return_value = {
+        "OD": OdinController(mocker.MagicMock())
+    }
+
+    handler = StatusSummaryUpdater(["OD"], "some_attribute", any)
+    with pytest.raises(KeyError, match="does not have attribute"):
         await handler.initialise(controller)
 
 
