@@ -402,7 +402,7 @@ async def test_status_summary_updater_raise_exception_if_controller_not_found(
 
 
 @pytest.mark.asyncio
-async def test_status_summary_updater_raise_exception_if_attribute_not_found(
+async def test_status_summary_updater_raises_exception_if_attribute_not_found(
     mocker: MockerFixture,
 ):
     controller = mocker.MagicMock()
@@ -493,10 +493,11 @@ async def test_frame_processor_start_and_stop_writing(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_top_frame_processor_commands_raise_exception(mocker: MockerFixture):
-    mock_connection = mocker.AsyncMock()
+async def test_top_level_frame_processor_commands_raise_exception(
+    mocker: MockerFixture,
+):
     fpac = FrameProcessorAdapterController(
-        mock_connection, mocker.AsyncMock(), "api/0.1"
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1"
     )
 
     fpc = FrameProcessorController(mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1")
