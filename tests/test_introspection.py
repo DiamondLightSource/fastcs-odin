@@ -74,12 +74,14 @@ async def test_fp_initialise(mocker: MockerFixture):
     ]
 
     parameters = create_odin_parameters(response)
-    controller = FrameProcessorAdapterController(mock_connection, parameters, "prefix")
+    controller = FrameProcessorAdapterController(
+        mock_connection, parameters, "prefix", []
+    )
     await controller.initialise()
-    assert all(fpx in controller.get_sub_controllers() for fpx in ("FP0", "FP1"))
+    assert all(fpx in controller.sub_controllers for fpx in ("FP0", "FP1"))
     assert all(
         isinstance(fpx, FrameProcessorController)
-        for fpx in controller.get_sub_controllers().values()
+        for fpx in controller.sub_controllers.values()
     )
 
 
@@ -99,12 +101,14 @@ async def test_fr_initialise(mocker: MockerFixture):
     mock_connection = mocker.MagicMock()
 
     parameters = create_odin_parameters(response)
-    controller = FrameReceiverAdapterController(mock_connection, parameters, "prefix")
+    controller = FrameReceiverAdapterController(
+        mock_connection, parameters, "prefix", []
+    )
     await controller.initialise()
-    assert all(frx in controller.get_sub_controllers() for frx in ("FR0", "FR1"))
+    assert all(frx in controller.sub_controllers for frx in ("FR0", "FR1"))
     assert all(
         isinstance(frx, FrameReceiverController)
-        for frx in controller.get_sub_controllers().values()
+        for frx in controller.sub_controllers.values()
     )
 
 
