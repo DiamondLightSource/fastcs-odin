@@ -91,8 +91,11 @@ class OdinDataAdapterController(OdinAdapterController):
                     )
 
         for parameter, sub_attributes in parameter_attribute_map.values():
-            self.attributes[parameter.name] = sub_attributes[0].__class__(
-                sub_attributes[0].datatype,
-                group=sub_attributes[0].group,
-                io_ref=ConfigFanAttributeIORef(sub_attributes),
+            self.add_attribute(
+                parameter.name,
+                sub_attributes[0].__class__(
+                    sub_attributes[0].datatype,
+                    group=sub_attributes[0].group,
+                    io_ref=ConfigFanAttributeIORef(sub_attributes),
+                ),
             )

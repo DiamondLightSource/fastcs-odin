@@ -79,4 +79,4 @@ class OdinAdapterController(Controller):
                 ),
                 group=group,
             )
-            self.attributes[parameter.name] = attr
+            self.add_attribute(parameter.name, attr)
