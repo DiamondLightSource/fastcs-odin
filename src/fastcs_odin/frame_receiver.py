@@ -1,4 +1,4 @@
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.odin_data import OdinDataAdapterController
 from fastcs_odin.util import (
     OdinParameter,
@@ -8,7 +8,7 @@ from fastcs_odin.util import (
 )
 
 
-class FrameReceiverController(OdinAdapterController):
+class FrameReceiverController(OdinSubController):
     async def initialise(self):
         self._process_parameters()
 
@@ -55,7 +55,7 @@ class FrameReceiverAdapterController(OdinDataAdapterController):
     ]
 
 
-class FrameReceiverDecoderController(OdinAdapterController):
+class FrameReceiverDecoderController(OdinSubController):
     async def initialise(self):
         self._process_parameters()
         for parameter in self.parameters:

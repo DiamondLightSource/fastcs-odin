@@ -9,7 +9,7 @@ from fastcs.logging import bind_logger
 from pydantic import ValidationError
 
 from fastcs_odin.io.status_summary_attribute_io import StatusSummaryAttributeIORef
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.odin_data import OdinDataAdapterController
 from fastcs_odin.util import (
     AllowedCommandsResponse,
@@ -22,7 +22,7 @@ from fastcs_odin.util import (
 logger = bind_logger(logger_name=__name__)
 
 
-class FrameProcessorController(OdinAdapterController):
+class FrameProcessorController(OdinSubController):
     """Sub controller for a frame processor application."""
 
     def _process_parameters(self):
@@ -101,7 +101,7 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     _subcontroller_cls = FrameProcessorController
 
 
-class FrameProcessorPluginController(OdinAdapterController):
+class FrameProcessorPluginController(OdinSubController):
     """SubController for a plugin in a frameProcessor application."""
 
     async def initialise(self):
@@ -168,7 +168,7 @@ class FrameProcessorPluginController(OdinAdapterController):
                 parameter.set_path(["current_acquisition_id"])
 
 
-class FrameProcessorDatasetController(OdinAdapterController):
+class FrameProcessorDatasetController(OdinSubController):
     async def initialise(self):
         self._process_parameters()
         for parameter in self.parameters:

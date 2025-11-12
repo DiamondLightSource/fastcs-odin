@@ -37,7 +37,7 @@ from fastcs_odin.io.status_summary_attribute_io import (
     initialise_summary_attributes,
 )
 from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_controller import OdinAdapterController, OdinController
+from fastcs_odin.odin_controller import OdinController, OdinSubController
 from fastcs_odin.util import (
     AdapterType,
     OdinParameter,
@@ -63,7 +63,7 @@ def test_create_attributes():
             metadata=OdinParameterMetadata(value=0.1, type="float", writeable=True),
         ),
     ]
-    controller = OdinAdapterController(HTTPConnection("", 0), parameters, "api/0.1", [])
+    controller = OdinSubController(HTTPConnection("", 0), parameters, "api/0.1", [])
 
     for parameter in controller.parameters:
         controller.add_attribute(
@@ -170,7 +170,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     ctrl = controller._create_adapter_controller(
         controller.connection, parameters, "od", "OtherAdapter"
     )
-    assert isinstance(ctrl, OdinAdapterController)
+    assert isinstance(ctrl, OdinSubController)
 
 
 @pytest.mark.parametrize(
@@ -178,7 +178,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     [
         [
             [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
-            OdinAdapterController,
+            OdinSubController,
         ],
         [
             [
@@ -266,7 +266,7 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
         }:
             sub_controllers = controllers["HDF"].sub_controllers
             assert "DS" in sub_controllers
-            assert isinstance(sub_controllers["DS"], OdinAdapterController)
+            assert isinstance(sub_controllers["DS"], OdinSubController)
             assert sub_controllers["DS"].parameters == [
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],

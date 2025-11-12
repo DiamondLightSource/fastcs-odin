@@ -1,8 +1,8 @@
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.util import create_attribute
 
 
-class EigerFanAdapterController(OdinAdapterController):
+class EigerFanAdapterController(OdinSubController):
     """Controller for an EigerFan adapter in an odin control server"""
 
     async def initialise(self):

@@ -10,7 +10,7 @@ from fastcs.datatypes import T
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
 from fastcs_odin.io.status_summary_attribute_io import initialise_summary_attributes
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.util import (
     OdinParameter,
     create_attribute,
@@ -24,7 +24,7 @@ class OdinDataAdapterController(ControllerVector):
 
     _unique_config: list[str] = []
     _subcontroller_label: str = "OD"
-    _subcontroller_cls: type[OdinAdapterController] = OdinAdapterController
+    _subcontroller_cls: type[OdinSubController] = OdinSubController
 
     def __init__(
         self,
@@ -80,7 +80,7 @@ class OdinDataAdapterController(ControllerVector):
         parameter_attribute_map: dict[str, tuple[OdinParameter, list[AttrW]]] = {}
         for sub_controller in get_all_sub_controllers(self):
             match sub_controller:
-                case OdinAdapterController():
+                case OdinSubController():
                     for parameter in sub_controller.parameters:
                         mode, key = parameter.uri[0], parameter.uri[-1]
                         if mode == "config" and key not in self._unique_config:

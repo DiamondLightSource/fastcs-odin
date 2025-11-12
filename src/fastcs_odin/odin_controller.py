@@ -15,7 +15,7 @@ from fastcs_odin.io.status_summary_attribute_io import (
     initialise_summary_attributes,
 )
 from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
 REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
@@ -104,7 +104,7 @@ class OdinController(Controller):
                     connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case _:
-                return OdinAdapterController(
+                return OdinSubController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
 

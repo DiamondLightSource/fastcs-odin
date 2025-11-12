@@ -3,11 +3,11 @@ from fastcs.datatypes import Bool, Int, String
 from fastcs.wrappers import command
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.util import create_attribute
 
 
-class MetaWriterAdapterController(OdinAdapterController):
+class MetaWriterAdapterController(OdinSubController):
     """Controller for the meta writer adapter in an odin control server"""
 
     async def initialise(self):

@@ -9,7 +9,7 @@ from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.util import OdinParameter
 
 
-class OdinAdapterController(Controller):
+class OdinSubController(Controller):
     """Base class for exposing parameters from an odin control adapter.
 
     Introspection should work for any odin adapter that implements its API using
