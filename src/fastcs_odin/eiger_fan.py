@@ -1,8 +1,17 @@
 from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.util import create_attribute
 
 
 class EigerFanAdapterController(OdinAdapterController):
     """Controller for an EigerFan adapter in an odin control server"""
+
+    async def initialise(self):
+        self._process_parameters()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     def _process_parameters(self):
         for parameter in self.parameters:

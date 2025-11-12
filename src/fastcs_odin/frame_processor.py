@@ -10,14 +10,28 @@ from pydantic import ValidationError
 
 from fastcs_odin.io.status_summary_attribute_io import StatusSummaryAttributeIORef
 from fastcs_odin.odin_adapter_controller import OdinAdapterController
-from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import AllowedCommandsResponse, OdinParameter, partition
+from fastcs_odin.odin_data import OdinDataAdapterController
+from fastcs_odin.util import (
+    AllowedCommandsResponse,
+    OdinParameter,
+    create_attribute,
+    partition,
+    remove_metadata_fields_paths,
+)
 
 logger = bind_logger(logger_name=__name__)
 
 
-class FrameProcessorController(OdinDataController):
+class FrameProcessorController(OdinAdapterController):
     """Sub controller for a frame processor application."""
+
+    def _process_parameters(self):
+        self.parameters = remove_metadata_fields_paths(self.parameters)
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
 
     async def initialise(self):
         plugins_response = await self.connection.get(
@@ -35,7 +49,11 @@ class FrameProcessorController(OdinDataController):
 
         self._process_parameters()
         await self._create_plugin_sub_controllers(plugins)
-        self._create_attributes()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     async def _create_plugin_sub_controllers(self, plugins: Sequence[str]):
         for plugin in plugins:
@@ -62,12 +80,14 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
         io_ref=StatusSummaryAttributeIORef(
-            [re.compile("FP*"), "HDF"], "frames_written", partial(sum, start=0)
+            [re.compile(r"[0-9]+"), "HDF"], "frames_written", partial(sum, start=0)
         ),
     )
     writing: AttrR = AttrR(
         Bool(),
-        io_ref=StatusSummaryAttributeIORef([re.compile("FP*"), "HDF"], "writing", any),
+        io_ref=StatusSummaryAttributeIORef(
+            [re.compile(r"[0-9]+"), "HDF"], "writing", any
+        ),
     )
     _unique_config = [
         "rank",
@@ -87,7 +107,12 @@ class FrameProcessorPluginController(OdinAdapterController):
     async def initialise(self):
         await self._create_commands()
         await self._create_dataset_controllers()
-        return await super().initialise()
+        self._process_parameters()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     async def _create_commands(self):
         plugin_name = self.path[-1].lower()
@@ -144,6 +169,14 @@ class FrameProcessorPluginController(OdinAdapterController):
 
 
 class FrameProcessorDatasetController(OdinAdapterController):
+    async def initialise(self):
+        self._process_parameters()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
+
     def _process_parameters(self):
         for parameter in self.parameters:
             parameter.set_path(parameter.uri[3:])

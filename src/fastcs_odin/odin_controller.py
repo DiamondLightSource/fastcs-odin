@@ -1,6 +1,6 @@
 from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
-from fastcs.controller import Controller
+from fastcs.controller import BaseController, Controller
 from fastcs.datatypes import Bool
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
@@ -83,7 +83,7 @@ class OdinController(Controller):
         parameters: list[OdinParameter],
         adapter: str,
         module: str,
-    ) -> OdinAdapterController:
+    ) -> BaseController:
         """Create a sub controller for an adapter in an odin control server."""
 
         match module:

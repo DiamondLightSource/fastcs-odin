@@ -1,11 +1,14 @@
-from fastcs_odin.odin_adapter_controller import (
-    OdinAdapterController,
+from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_data import OdinDataAdapterController
+from fastcs_odin.util import (
+    OdinParameter,
+    create_attribute,
+    partition,
+    remove_metadata_fields_paths,
 )
-from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import OdinParameter, partition
 
 
-class FrameReceiverController(OdinDataController):
+class FrameReceiverController(OdinAdapterController):
     async def initialise(self):
         self._process_parameters()
 
@@ -20,7 +23,19 @@ class FrameReceiverController(OdinDataController):
         )
         self.add_sub_controller("DECODER", decoder_controller)
         await decoder_controller.initialise()
-        self._create_attributes()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
+
+    def _process_parameters(self):
+        self.parameters = remove_metadata_fields_paths(self.parameters)
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
 
 
 class FrameReceiverAdapterController(OdinDataAdapterController):
@@ -41,6 +56,14 @@ class FrameReceiverAdapterController(OdinDataAdapterController):
 
 
 class FrameReceiverDecoderController(OdinAdapterController):
+    async def initialise(self):
+        self._process_parameters()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
+
     def _process_parameters(self):
         for parameter in self.parameters:
             # remove redundant status/decoder part from path
