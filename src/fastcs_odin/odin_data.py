@@ -10,7 +10,7 @@ from fastcs.datatypes import T
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
 from fastcs_odin.io.status_summary_attribute_io import initialise_summary_attributes
-from fastcs_odin.odin_adapter_controller import OdinSubController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import (
     OdinParameter,
     create_attribute,

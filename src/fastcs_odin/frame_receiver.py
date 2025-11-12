@@ -1,5 +1,5 @@
-from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.odin_data import OdinDataAdapterController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import (
     OdinParameter,
     create_attribute,

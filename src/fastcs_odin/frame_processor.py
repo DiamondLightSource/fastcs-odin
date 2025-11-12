@@ -9,8 +9,8 @@ from fastcs.logging import bind_logger
 from pydantic import ValidationError
 
 from fastcs_odin.io.status_summary_attribute_io import StatusSummaryAttributeIORef
-from fastcs_odin.odin_adapter_controller import OdinSubController
 from fastcs_odin.odin_data import OdinDataAdapterController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import (
     AllowedCommandsResponse,
     OdinParameter,

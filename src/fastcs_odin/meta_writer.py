@@ -3,7 +3,7 @@ from fastcs.datatypes import Bool, Int, String
 from fastcs.wrappers import command
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
-from fastcs_odin.odin_adapter_controller import OdinSubController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import create_attribute
 
 

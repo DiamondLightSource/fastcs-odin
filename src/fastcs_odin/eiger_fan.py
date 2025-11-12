@@ -1,4 +1,4 @@
-from fastcs_odin.odin_adapter_controller import OdinSubController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import create_attribute
 
 
