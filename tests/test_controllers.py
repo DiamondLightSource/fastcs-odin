@@ -38,7 +38,12 @@ from fastcs_odin.io.status_summary_attribute_io import (
 )
 from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.odin_controller import OdinAdapterController, OdinController
-from fastcs_odin.util import AdapterType, OdinParameter, OdinParameterMetadata
+from fastcs_odin.util import (
+    AdapterType,
+    OdinParameter,
+    OdinParameterMetadata,
+    create_attribute,
+)
 
 HERE = Path(__file__).parent
 
@@ -60,7 +65,11 @@ def test_create_attributes():
     ]
     controller = OdinAdapterController(HTTPConnection("", 0), parameters, "api/0.1", [])
 
-    controller._create_attributes()
+    for parameter in controller.parameters:
+        controller.add_attribute(
+            parameter.name,
+            create_attribute(parameter=parameter, api_prefix=controller._api_prefix),
+        )
 
     match controller.attributes:
         case {
