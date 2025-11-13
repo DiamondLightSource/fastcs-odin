@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
+from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
@@ -13,6 +14,7 @@ from fastcs_odin.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
+from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.util import (
     OdinParameter,
     OdinParameterMetadata,
@@ -294,3 +296,40 @@ def test_create_odin_parameters():
 
     metadata_config = OdinParameterMetadata(value=True, type="bool", writeable=False)
     assert parameters[3] == OdinParameter(uri=["test"], metadata=metadata_config)
+
+
+@pytest.mark.asyncio
+async def test_mw_initialise(mocker: MockerFixture):
+    with (HERE / "input/mw_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection = mocker.AsyncMock()
+
+    parameters = create_odin_parameters(response)
+    meta_writer = MetaWriterAdapterController(mock_connection, parameters, "prefix", [])
+    await meta_writer.initialise()
+
+    assert len(meta_writer.attributes) == 19
+
+    await meta_writer.stop()
+    mock_connection.put.assert_called_once_with("api/0.1/mw/config/stop", True)
+
+    # Check `0/status/` removed
+    assert meta_writer.timestamp.path == []  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_ef_initialise(mocker: MockerFixture):
+    with (HERE / "input/ef_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection = mocker.MagicMock()
+
+    parameters = create_odin_parameters(response)
+    eiger_fan = EigerFanAdapterController(mock_connection, parameters, "prefix", [])
+    await eiger_fan.initialise()
+
+    assert len(eiger_fan.attributes) == 28
+
+    # Check `0/status/` removed
+    assert eiger_fan.timestamp.path == []  # type: ignore
