@@ -19,5 +19,3 @@ class EigerFanAdapterController(OdinSubController):
             match parameter.uri:
                 case ["0", "status" | "config", *_]:
                     parameter.set_path(parameter.path[2:])
-                case ["0", _]:
-                    parameter.set_path(parameter.path[1:])
