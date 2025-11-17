@@ -11,19 +11,15 @@ class MetaWriterAdapterController(OdinSubController):
     """Controller for the meta writer adapter in an odin control server"""
 
     async def initialise(self):
-        self._process_parameters()
-        for parameter in self.parameters:
-            self.add_attribute(
-                parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
-            )
-
-    def _process_parameters(self):
         for parameter in self.parameters:
             # Remove 0 index and status/config
             match parameter.uri:
                 case ["0", "status" | "config", *_]:
                     parameter.set_path(parameter.path[2:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     acquisition_id: AttrRW = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/acquisition_id")

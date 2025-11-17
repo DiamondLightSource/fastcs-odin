@@ -25,14 +25,6 @@ logger = bind_logger(logger_name=__name__)
 class FrameProcessorController(OdinSubController):
     """Sub controller for a frame processor application."""
 
-    def _process_parameters(self):
-        self.parameters = remove_metadata_fields_paths(self.parameters)
-        for parameter in self.parameters:
-            # Remove duplicate index from uri
-            parameter.uri = parameter.uri[1:]
-            # Remove redundant status/config from parameter path
-            parameter.set_path(parameter.uri[1:])
-
     async def initialise(self):
         plugins_response = await self.connection.get(
             f"{self._api_prefix}/status/plugins/names"
@@ -47,8 +39,15 @@ class FrameProcessorController(OdinSubController):
                     f"Did not find valid plugins in response:\n{plugins_response}"
                 )
 
-        self._process_parameters()
+        self.parameters = remove_metadata_fields_paths(self.parameters)
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
+
         await self._create_plugin_sub_controllers(plugins)
+
         for parameter in self.parameters:
             self.add_attribute(
                 parameter.name,
@@ -107,8 +106,16 @@ class FrameProcessorPluginController(OdinSubController):
     async def initialise(self):
         await self._create_commands()
         await self._create_dataset_controllers()
-        self._process_parameters()
         for parameter in self.parameters:
+            # Remove plugin name included in controller base path
+            parameter.set_path(parameter.path[1:])
+
+            # Handle clash between status and config in FileWriterPlugin
+            # TODO: https://github.com/odin-detector/odin-data/issues/426
+            if parameter.uri == ["status", "hdf", "file_path"]:
+                parameter.set_path(["current_file_path"])
+            elif parameter.uri == ["status", "hdf", "acquisition_id"]:
+                parameter.set_path(["current_acquisition_id"])
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
@@ -155,28 +162,12 @@ class FrameProcessorPluginController(OdinSubController):
 
         setattr(self, command_name, Command(submit_command))
 
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            # Remove plugin name included in controller base path
-            parameter.set_path(parameter.path[1:])
-
-            # Handle clash between status and config in FileWriterPlugin
-            # TODO: https://github.com/odin-detector/odin-data/issues/426
-            if parameter.uri == ["status", "hdf", "file_path"]:
-                parameter.set_path(["current_file_path"])
-            elif parameter.uri == ["status", "hdf", "acquisition_id"]:
-                parameter.set_path(["current_acquisition_id"])
-
 
 class FrameProcessorDatasetController(OdinSubController):
     async def initialise(self):
-        self._process_parameters()
         for parameter in self.parameters:
+            parameter.set_path(parameter.uri[3:])
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
             )
-
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            parameter.set_path(parameter.uri[3:])

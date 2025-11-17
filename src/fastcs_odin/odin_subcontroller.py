@@ -6,17 +6,14 @@ from fastcs.controller import Controller
 from fastcs.datatypes import T
 
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.util import OdinParameter
+from fastcs_odin.util import (
+    OdinParameter,
+    create_attribute,
+)
 
 
 class OdinSubController(Controller):
-    """Base class for exposing parameters from an odin control adapter.
-
-    Introspection should work for any odin adapter that implements its API using
-    ParameterTree. To implement logic for a specific adapter, make a subclass and
-    implement `_process_parameters` to modify the parameters before creating attributes
-    and/or statically define additional attributes.
-    """
+    """Base class for exposing parameters from an odin control adapter."""
 
     def __init__(
         self,
@@ -38,3 +35,10 @@ class OdinSubController(Controller):
         self.parameters = parameters
         self._api_prefix = api_prefix
         self._ios = ios
+
+    async def initialise(self):
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )

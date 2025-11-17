@@ -108,7 +108,8 @@ async def test_create_commands(mocker: MockerFixture):
     await controller._create_commands()
 
 
-def test_fp_process_parameters():
+@pytest.mark.asyncio
+async def test_fp_process_parameters_during_initialise(mocker: MockerFixture):
     parameters = [
         OdinParameter(
             ["0", "status", "hdf", "frames_written"],
@@ -120,9 +121,12 @@ def test_fp_process_parameters():
         ),
     ]
 
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1", [])
+    mock_connection = mocker.AsyncMock()
+    mock_connection.get.return_value = {"names": ["plugin_a", "plugin_b"]}
 
-    fpc._process_parameters()
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1", [])
+
+    await fpc.initialise()
     assert fpc.parameters == [
         OdinParameter(
             uri=["status", "hdf", "frames_written"],

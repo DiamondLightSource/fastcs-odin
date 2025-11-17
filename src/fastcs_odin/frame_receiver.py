@@ -10,10 +10,19 @@ from fastcs_odin.util import (
 
 class FrameReceiverController(OdinSubController):
     async def initialise(self):
-        self._process_parameters()
-
         def __decoder_parameter(parameter: OdinParameter):
             return "decoder" in parameter.path[:-1]
+
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
+        self.parameters = remove_metadata_fields_paths(self.parameters)
 
         decoder_parameters, self.parameters = partition(
             self.parameters, __decoder_parameter
@@ -23,19 +32,6 @@ class FrameReceiverController(OdinSubController):
         )
         self.add_sub_controller("DECODER", decoder_controller)
         await decoder_controller.initialise()
-        for parameter in self.parameters:
-            self.add_attribute(
-                parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
-            )
-
-    def _process_parameters(self):
-        self.parameters = remove_metadata_fields_paths(self.parameters)
-        for parameter in self.parameters:
-            # Remove duplicate index from uri
-            parameter.uri = parameter.uri[1:]
-            # Remove redundant status/config from parameter path
-            parameter.set_path(parameter.uri[1:])
 
 
 class FrameReceiverAdapterController(OdinDataAdapterController):
@@ -57,14 +53,10 @@ class FrameReceiverAdapterController(OdinDataAdapterController):
 
 class FrameReceiverDecoderController(OdinSubController):
     async def initialise(self):
-        self._process_parameters()
         for parameter in self.parameters:
+            # remove redundant status/decoder part from path
+            parameter.set_path(parameter.uri[2:])
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
             )
-
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            # remove redundant status/decoder part from path
-            parameter.set_path(parameter.uri[2:])

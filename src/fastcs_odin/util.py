@@ -250,7 +250,7 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
 
 
 def create_attribute(parameter: OdinParameter, api_prefix: str):
-    """Create controller ``Attributes`` from ``OdinParameters``."""
+    """Create ``Attribute`` from ``OdinParameter``."""
     if parameter.metadata.writeable:
         attr_class = AttrRW
     else:
