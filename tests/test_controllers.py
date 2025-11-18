@@ -37,8 +37,13 @@ from fastcs_odin.io.status_summary_attribute_io import (
     initialise_summary_attributes,
 )
 from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_controller import OdinAdapterController, OdinController
-from fastcs_odin.util import AdapterType, OdinParameter, OdinParameterMetadata
+from fastcs_odin.odin_controller import OdinController, OdinSubController
+from fastcs_odin.util import (
+    AdapterType,
+    OdinParameter,
+    OdinParameterMetadata,
+    create_attribute,
+)
 
 HERE = Path(__file__).parent
 
@@ -58,9 +63,13 @@ def test_create_attributes():
             metadata=OdinParameterMetadata(value=0.1, type="float", writeable=True),
         ),
     ]
-    controller = OdinAdapterController(HTTPConnection("", 0), parameters, "api/0.1", [])
+    controller = OdinSubController(HTTPConnection("", 0), parameters, "api/0.1", [])
 
-    controller._create_attributes()
+    for parameter in controller.parameters:
+        controller.add_attribute(
+            parameter.name,
+            create_attribute(parameter=parameter, api_prefix=controller._api_prefix),
+        )
 
     match controller.attributes:
         case {
@@ -99,7 +108,8 @@ async def test_create_commands(mocker: MockerFixture):
     await controller._create_commands()
 
 
-def test_fp_process_parameters():
+@pytest.mark.asyncio
+async def test_fp_process_parameters_during_initialise(mocker: MockerFixture):
     parameters = [
         OdinParameter(
             ["0", "status", "hdf", "frames_written"],
@@ -111,9 +121,12 @@ def test_fp_process_parameters():
         ),
     ]
 
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1", [])
+    mock_connection = mocker.AsyncMock()
+    mock_connection.get.return_value = {"names": ["plugin_a", "plugin_b"]}
 
-    fpc._process_parameters()
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1", [])
+
+    await fpc.initialise()
     assert fpc.parameters == [
         OdinParameter(
             uri=["status", "hdf", "frames_written"],
@@ -161,7 +174,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     ctrl = controller._create_adapter_controller(
         controller.connection, parameters, "od", "OtherAdapter"
     )
-    assert isinstance(ctrl, OdinAdapterController)
+    assert isinstance(ctrl, OdinSubController)
 
 
 @pytest.mark.parametrize(
@@ -169,7 +182,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     [
         [
             [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
-            OdinAdapterController,
+            OdinSubController,
         ],
         [
             [
@@ -257,7 +270,7 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
         }:
             sub_controllers = controllers["HDF"].sub_controllers
             assert "DS" in sub_controllers
-            assert isinstance(sub_controllers["DS"], OdinAdapterController)
+            assert isinstance(sub_controllers["DS"], OdinSubController)
             assert sub_controllers["DS"].parameters == [
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],

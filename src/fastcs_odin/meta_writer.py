@@ -3,18 +3,23 @@ from fastcs.datatypes import Bool, Int, String
 from fastcs.wrappers import command
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
-from fastcs_odin.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.util import create_attribute
 
 
-class MetaWriterAdapterController(OdinAdapterController):
+class MetaWriterAdapterController(OdinSubController):
     """Controller for the meta writer adapter in an odin control server"""
 
-    def _process_parameters(self):
+    async def initialise(self):
         for parameter in self.parameters:
             # Remove 0 index and status/config
             match parameter.uri:
                 case ["0", "status" | "config", *_]:
                     parameter.set_path(parameter.path[2:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     acquisition_id: AttrRW = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/acquisition_id")

@@ -20,6 +20,7 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
+    remove_metadata_fields_paths,
     unpack_status_arrays,
 )
 
@@ -80,7 +81,7 @@ async def test_fp_initialise(mocker: MockerFixture):
         mock_connection, parameters, "prefix", []
     )
     await controller.initialise()
-    assert all(fpx in controller.sub_controllers for fpx in ("FP0", "FP1"))
+    assert all(fpx in controller.sub_controllers for fpx in ("0", "1"))
     assert all(
         isinstance(fpx, FrameProcessorController)
         for fpx in controller.sub_controllers.values()
@@ -93,6 +94,9 @@ def test_two_node_fr():
 
     parameters = create_odin_parameters(response)
     assert len(parameters) == 82
+
+    parameters = remove_metadata_fields_paths(parameters)
+    assert len(parameters) == 80
 
 
 @pytest.mark.asyncio
@@ -107,11 +111,12 @@ async def test_fr_initialise(mocker: MockerFixture):
         mock_connection, parameters, "prefix", []
     )
     await controller.initialise()
-    assert all(frx in controller.sub_controllers for frx in ("FR0", "FR1"))
+    assert all(frx in controller.sub_controllers for frx in ("0", "1"))
     assert all(
         isinstance(frx, FrameReceiverController)
         for frx in controller.sub_controllers.values()
     )
+    assert "decoder_name" not in controller[0].DECODER.attributes  # type: ignore
 
 
 def test_node_with_empty_list_is_correctly_counted():
