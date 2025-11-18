@@ -56,7 +56,7 @@ class FrameReceiverDecoderController(OdinSubController):
     async def initialise(self):
         for parameter in self.parameters:
             # remove redundant status/decoder part from path
-            parameter.set_path(parameter.uri[2:])
+            parameter.set_path(parameter.uri[3:])
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),

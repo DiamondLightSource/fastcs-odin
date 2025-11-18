@@ -20,6 +20,7 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
+    remove_metadata_fields_paths,
     unpack_status_arrays,
 )
 
@@ -94,6 +95,9 @@ def test_two_node_fr():
     parameters = create_odin_parameters(response)
     assert len(parameters) == 82
 
+    parameters = remove_metadata_fields_paths(parameters)
+    assert len(parameters) == 80
+
 
 @pytest.mark.asyncio
 async def test_fr_initialise(mocker: MockerFixture):
@@ -112,6 +116,7 @@ async def test_fr_initialise(mocker: MockerFixture):
         isinstance(frx, FrameReceiverController)
         for frx in controller.sub_controllers.values()
     )
+    assert "decoder_name" not in controller[0].DECODER.attributes  # type: ignore
 
 
 def test_node_with_empty_list_is_correctly_counted():
