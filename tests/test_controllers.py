@@ -486,3 +486,17 @@ async def test_top_level_frame_processor_commands_raise_exception(
 
     with pytest.raises(AttributeError, match="does not have"):
         await fpac.start_writing()
+
+
+@pytest.mark.asyncio
+async def test_status_summary_updater_raises_exception_if_attribute_not_found():
+    controller = Controller()
+    sub_controller = Controller()
+
+    controller.add_sub_controller("OD", sub_controller)
+
+    controller.writing = AttrR(
+        Bool(), StatusSummaryAttributeIORef(["OD"], "some_attribute", any)
+    )
+    with pytest.raises(KeyError, match=r"Sub controller .* does not have attribute"):
+        initialise_summary_attributes(controller)
