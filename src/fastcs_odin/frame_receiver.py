@@ -13,15 +13,6 @@ class FrameReceiverController(OdinSubController):
         def __decoder_parameter(parameter: OdinParameter):
             return "decoder" in parameter.path[:-1]
 
-        for parameter in self.parameters:
-            # Remove duplicate index from uri
-            parameter.uri = parameter.uri[1:]
-            # Remove redundant status/config from parameter path
-            parameter.set_path(parameter.uri[1:])
-            self.add_attribute(
-                parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
-            )
         self.parameters = remove_metadata_fields_paths(self.parameters)
 
         decoder_parameters, self.parameters = partition(
@@ -32,6 +23,16 @@ class FrameReceiverController(OdinSubController):
         )
         self.add_sub_controller("DECODER", decoder_controller)
         await decoder_controller.initialise()
+
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
 
 class FrameReceiverAdapterController(OdinDataAdapterController):
