@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
+from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
@@ -13,11 +14,13 @@ from fastcs_odin.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
+from fastcs_odin.meta_writer import MetaWriterAdapterController
 from fastcs_odin.util import (
     OdinParameter,
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
+    remove_metadata_fields_paths,
     unpack_status_arrays,
 )
 
@@ -74,12 +77,14 @@ async def test_fp_initialise(mocker: MockerFixture):
     ]
 
     parameters = create_odin_parameters(response)
-    controller = FrameProcessorAdapterController(mock_connection, parameters, "prefix")
+    controller = FrameProcessorAdapterController(
+        mock_connection, parameters, "prefix", []
+    )
     await controller.initialise()
-    assert all(fpx in controller.get_sub_controllers() for fpx in ("FP0", "FP1"))
+    assert all(fpx in controller.sub_controllers for fpx in ("0", "1"))
     assert all(
         isinstance(fpx, FrameProcessorController)
-        for fpx in controller.get_sub_controllers().values()
+        for fpx in controller.sub_controllers.values()
     )
 
 
@@ -90,6 +95,9 @@ def test_two_node_fr():
     parameters = create_odin_parameters(response)
     assert len(parameters) == 82
 
+    parameters = remove_metadata_fields_paths(parameters)
+    assert len(parameters) == 80
+
 
 @pytest.mark.asyncio
 async def test_fr_initialise(mocker: MockerFixture):
@@ -99,13 +107,16 @@ async def test_fr_initialise(mocker: MockerFixture):
     mock_connection = mocker.MagicMock()
 
     parameters = create_odin_parameters(response)
-    controller = FrameReceiverAdapterController(mock_connection, parameters, "prefix")
+    controller = FrameReceiverAdapterController(
+        mock_connection, parameters, "prefix", []
+    )
     await controller.initialise()
-    assert all(frx in controller.get_sub_controllers() for frx in ("FR0", "FR1"))
+    assert all(frx in controller.sub_controllers for frx in ("0", "1"))
     assert all(
         isinstance(frx, FrameReceiverController)
-        for frx in controller.get_sub_controllers().values()
+        for frx in controller.sub_controllers.values()
     )
+    assert "decoder_name" not in controller[0].DECODER.attributes  # type: ignore
 
 
 def test_node_with_empty_list_is_correctly_counted():
@@ -290,3 +301,40 @@ def test_create_odin_parameters():
 
     metadata_config = OdinParameterMetadata(value=True, type="bool", writeable=False)
     assert parameters[3] == OdinParameter(uri=["test"], metadata=metadata_config)
+
+
+@pytest.mark.asyncio
+async def test_mw_initialise(mocker: MockerFixture):
+    with (HERE / "input/mw_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection = mocker.AsyncMock()
+
+    parameters = create_odin_parameters(response)
+    meta_writer = MetaWriterAdapterController(mock_connection, parameters, "prefix", [])
+    await meta_writer.initialise()
+
+    assert len(meta_writer.attributes) == 19
+
+    await meta_writer.stop()
+    mock_connection.put.assert_called_once_with("api/0.1/mw/config/stop", True)
+
+    # Check `0/status/` removed
+    assert meta_writer.timestamp.path == []  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_ef_initialise(mocker: MockerFixture):
+    with (HERE / "input/ef_response.json").open() as f:
+        response = json.loads(f.read())
+
+    mock_connection = mocker.MagicMock()
+
+    parameters = create_odin_parameters(response)
+    eiger_fan = EigerFanAdapterController(mock_connection, parameters, "prefix", [])
+    await eiger_fan.initialise()
+
+    assert len(eiger_fan.attributes) == 28
+
+    # Check `0/status/` removed
+    assert eiger_fan.timestamp.path == []  # type: ignore

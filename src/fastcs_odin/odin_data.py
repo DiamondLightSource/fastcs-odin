@@ -1,39 +1,51 @@
 import logging
+from collections.abc import Sequence
 
+from fastcs.attribute_io import AttributeIO
+from fastcs.attribute_io_ref import AttributeIORefT
 from fastcs.attributes import AttrW
+from fastcs.controller import ControllerVector
+from fastcs.datatypes import T
 
-from fastcs_odin.odin_adapter_controller import (
-    ConfigFanSender,
-    OdinAdapterController,
+from fastcs_odin.http_connection import HTTPConnection
+from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
+from fastcs_odin.io.status_summary_attribute_io import initialise_summary_attributes
+from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.util import (
+    OdinParameter,
+    create_attribute,
+    get_all_sub_controllers,
+    partition,
 )
-from fastcs_odin.util import OdinParameter, get_all_sub_controllers, partition
 
 
-class OdinDataController(OdinAdapterController):
-    def _remove_metadata_fields_paths(self):
-        # paths ending in name or description are invalid in Odin's BaseParameterTree
-        self.parameters, invalid = partition(
-            self.parameters, lambda p: p.uri[-1] not in ["name", "description"]
-        )
-        if invalid:
-            invalid_names = ["/".join(param.uri) for param in invalid]
-            logging.warning(f"Removing parameters with invalid names: {invalid_names}")
-
-    def _process_parameters(self):
-        self._remove_metadata_fields_paths()
-        for parameter in self.parameters:
-            # Remove duplicate index from uri
-            parameter.uri = parameter.uri[1:]
-            # Remove redundant status/config from parameter path
-            parameter.set_path(parameter.uri[1:])
-
-
-class OdinDataAdapterController(OdinAdapterController):
+class OdinDataAdapterController(ControllerVector):
     """Sub controller for the frame processor adapter in an odin control server."""
 
     _unique_config: list[str] = []
     _subcontroller_label: str = "OD"
-    _subcontroller_cls: type[OdinDataController] = OdinDataController
+    _subcontroller_cls: type[OdinSubController] = OdinSubController
+
+    def __init__(
+        self,
+        connection: HTTPConnection,
+        parameters: list[OdinParameter],
+        api_prefix: str,
+        ios: Sequence[AttributeIO[T, AttributeIORefT]],
+    ):
+        """
+        Args:
+            connection: HTTP connection to communicate with odin server
+            parameters: The parameters in the adapter
+            api_prefix: The base URL of this adapter in the odin server API
+
+        """
+        super().__init__(ios=ios, children={})
+
+        self.connection = connection
+        self.parameters = parameters
+        self._api_prefix = api_prefix
+        self._ios = ios
 
     async def initialise(self):
         idx_parameters, self.parameters = partition(
@@ -50,21 +62,25 @@ class OdinDataAdapterController(OdinAdapterController):
                 self.connection,
                 fp_parameters,
                 f"{self._api_prefix}/{idx}",
+                self._ios,
             )
-            self.register_sub_controller(
-                f"{self._subcontroller_label}{idx}", adapter_controller
-            )
+            self[int(idx)] = adapter_controller
             await adapter_controller.initialise()
 
-        self._create_attributes()
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
         self._create_config_fan_attributes()
+        initialise_summary_attributes(self)
 
     def _create_config_fan_attributes(self):
         """Search for config attributes in sub controllers to create fan out PVs."""
         parameter_attribute_map: dict[str, tuple[OdinParameter, list[AttrW]]] = {}
         for sub_controller in get_all_sub_controllers(self):
             match sub_controller:
-                case OdinAdapterController():
+                case OdinSubController():
                     for parameter in sub_controller.parameters:
                         mode, key = parameter.uri[0], parameter.uri[-1]
                         if mode == "config" and key not in self._unique_config:
@@ -90,8 +106,11 @@ class OdinDataAdapterController(OdinAdapterController):
                     )
 
         for parameter, sub_attributes in parameter_attribute_map.values():
-            self.attributes[parameter.name] = sub_attributes[0].__class__(
-                sub_attributes[0].datatype,
-                group=sub_attributes[0].group,
-                handler=ConfigFanSender(sub_attributes),
+            self.add_attribute(
+                parameter.name,
+                sub_attributes[0].__class__(
+                    sub_attributes[0].datatype,
+                    group=sub_attributes[0].group,
+                    io_ref=ConfigFanAttributeIORef(sub_attributes),
+                ),
             )

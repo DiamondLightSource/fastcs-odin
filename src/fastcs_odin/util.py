@@ -5,9 +5,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal, TypeVar
 
-from fastcs.controller import BaseController, SubController
+from fastcs.attributes import AttrR, AttrRW
+from fastcs.controller import BaseController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
+from fastcs.util import snake_to_pascal
 from pydantic import BaseModel, ConfigDict, ValidationError
+
+from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -195,16 +199,12 @@ def partition(
     return truthy, falsy
 
 
-def get_all_sub_controllers(
-    controller: BaseController,
-) -> list[SubController]:
+def get_all_sub_controllers(controller: BaseController) -> list[BaseController]:
     return list(_walk_sub_controllers(controller))
 
 
-def _walk_sub_controllers(
-    controller: BaseController,
-) -> Iterable[SubController]:
-    for sub_controller in controller.get_sub_controllers().values():
+def _walk_sub_controllers(controller: BaseController) -> Iterable[BaseController]:
+    for sub_controller in controller.sub_controllers.values():
         yield sub_controller
         yield from _walk_sub_controllers(sub_controller)
 
@@ -245,5 +245,38 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
 
     for value in removelist:
         parameters.remove(value)
+
+    return parameters
+
+
+def create_attribute(parameter: OdinParameter, api_prefix: str):
+    """Create ``Attribute`` from ``OdinParameter``."""
+    if parameter.metadata.writeable:
+        attr_class = AttrRW
+    else:
+        attr_class = AttrR
+
+    if len(parameter.path) >= 2:
+        group = snake_to_pascal(f"{parameter.path[0]}")
+    else:
+        group = None
+
+    return attr_class(
+        parameter.metadata.fastcs_datatype,
+        io_ref=ParameterTreeAttributeIORef(
+            "/".join([api_prefix] + parameter.uri),
+        ),
+        group=group,
+    )
+
+
+def remove_metadata_fields_paths(parameters: list[OdinParameter]):
+    # paths ending in name or description are invalid in Odin's BaseParameterTree
+    parameters, invalid = partition(
+        parameters, lambda p: p.uri[-1] not in ["name", "description"]
+    )
+    if invalid:
+        invalid_names = ["/".join(param.uri) for param in invalid]
+        logging.warning(f"Removing parameters with invalid names: {invalid_names}")
 
     return parameters

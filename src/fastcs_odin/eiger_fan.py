@@ -1,12 +1,17 @@
-from fastcs.attributes import AttrRW
-from fastcs.datatypes import String
-
-from fastcs_odin.odin_adapter_controller import OdinAdapterController, ParamTreeHandler
+from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.util import create_attribute
 
 
-class EigerFanAdapterController(OdinAdapterController):
-    """SubController for an eigerfan adapter in an odin control server."""
+class EigerFanAdapterController(OdinSubController):
+    """Controller for an EigerFan adapter in an odin control server"""
 
-    acquisition_id: AttrRW = AttrRW(
-        String(), handler=ParamTreeHandler("api/0.1/ef/0/config/acqid")
-    )
+    async def initialise(self):
+        for parameter in self.parameters:
+            # Remove 0 index and status/config
+            match parameter.uri:
+                case ["0", "status" | "config", *_]:
+                    parameter.set_path(parameter.path[2:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )

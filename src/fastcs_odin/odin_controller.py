@@ -1,25 +1,24 @@
 from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
-from fastcs.controller import Controller
-from fastcs.datatypes import Bool, Float, Int, String
+from fastcs.controller import BaseController, Controller
+from fastcs.datatypes import Bool
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import FrameProcessorAdapterController
 from fastcs_odin.frame_receiver import FrameReceiverAdapterController
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_adapter_controller import (
-    OdinAdapterController,
-    StatusSummaryUpdater,
+from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIO
+from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIO
+from fastcs_odin.io.status_summary_attribute_io import (
+    StatusSummaryAttributeIO,
+    StatusSummaryAttributeIORef,
+    initialise_summary_attributes,
 )
+from fastcs_odin.meta_writer import MetaWriterAdapterController
+from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
-types = {"float": Float(), "int": Int(), "bool": Bool(), "str": String()}
-
 REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
-
-
-class AdapterResponseError(Exception): ...
 
 
 class OdinController(Controller):
@@ -28,13 +27,18 @@ class OdinController(Controller):
     API_PREFIX = "api/0.1"
 
     writing: AttrR = AttrR(
-        Bool(), handler=StatusSummaryUpdater([("MW", "FP")], "writing", any)
+        Bool(), io_ref=StatusSummaryAttributeIORef([("MW", "FP")], "writing", any)
     )
 
     def __init__(self, settings: IPConnectionSettings) -> None:
-        super().__init__()
-
         self.connection = HTTPConnection(settings.ip, settings.port)
+        self._ios = [
+            ParameterTreeAttributeIO(self.connection),
+            StatusSummaryAttributeIO(),
+            ConfigFanAttributeIO(),
+        ]
+
+        super().__init__(ios=self._ios)
 
     async def initialise(self) -> None:
         self.connection.open()
@@ -66,8 +70,10 @@ class OdinController(Controller):
             adapter_controller = self._create_adapter_controller(
                 self.connection, create_odin_parameters(response), adapter, module
             )
-            self.register_sub_controller(adapter.upper(), adapter_controller)
+            self.add_sub_controller(adapter.upper(), adapter_controller)
             await adapter_controller.initialise()
+
+        initialise_summary_attributes(self)
 
         await self.connection.close()
 
@@ -77,29 +83,29 @@ class OdinController(Controller):
         parameters: list[OdinParameter],
         adapter: str,
         module: str,
-    ) -> OdinAdapterController:
+    ) -> BaseController:
         """Create a sub controller for an adapter in an odin control server."""
 
         match module:
             case AdapterType.FRAME_PROCESSOR:
                 return FrameProcessorAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case AdapterType.FRAME_RECEIVER:
                 return FrameReceiverAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case AdapterType.META_WRITER:
                 return MetaWriterAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case AdapterType.EIGER_FAN:
                 return EigerFanAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case _:
-                return OdinAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}"
+                return OdinSubController(
+                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
 
     async def connect(self) -> None:

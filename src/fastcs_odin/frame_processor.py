@@ -6,19 +6,28 @@ from functools import cached_property, partial
 from fastcs.attributes import AttrR
 from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
+from fastcs.logging import bind_logger
 from fastcs.wrappers import command
 from pydantic import ValidationError
 
-from fastcs_odin.odin_adapter_controller import (
-    OdinAdapterController,
-    StatusSummaryUpdater,
+from fastcs_odin.io.status_summary_attribute_io import (
+    StatusSummaryAttributeIORef,
     _filter_sub_controllers,
 )
-from fastcs_odin.odin_data import OdinDataAdapterController, OdinDataController
-from fastcs_odin.util import AllowedCommandsResponse, OdinParameter, partition
+from fastcs_odin.odin_data import OdinDataAdapterController
+from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.util import (
+    AllowedCommandsResponse,
+    OdinParameter,
+    create_attribute,
+    partition,
+    remove_metadata_fields_paths,
+)
+
+logger = bind_logger(logger_name=__name__)
 
 
-class FrameProcessorController(OdinDataController):
+class FrameProcessorController(OdinSubController):
     """Sub controller for a frame processor application."""
 
     async def initialise(self):
@@ -35,9 +44,20 @@ class FrameProcessorController(OdinDataController):
                     f"Did not find valid plugins in response:\n{plugins_response}"
                 )
 
-        self._process_parameters()
+        self.parameters = remove_metadata_fields_paths(self.parameters)
+        for parameter in self.parameters:
+            # Remove duplicate index from uri
+            parameter.uri = parameter.uri[1:]
+            # Remove redundant status/config from parameter path
+            parameter.set_path(parameter.uri[1:])
+
         await self._create_plugin_sub_controllers(plugins)
-        self._create_attributes()
+
+        for parameter in self.parameters:
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     async def _create_plugin_sub_controllers(self, plugins: Sequence[str]):
         for plugin in plugins:
@@ -54,21 +74,24 @@ class FrameProcessorController(OdinDataController):
                 self.connection,
                 plugin_parameters,
                 f"{self._api_prefix}",
+                self._ios,
             )
-            self.register_sub_controller(plugin.upper(), plugin_controller)
+            self.add_sub_controller(plugin.upper(), plugin_controller)
             await plugin_controller.initialise()
 
 
 class FrameProcessorAdapterController(OdinDataAdapterController):
     frames_written: AttrR = AttrR(
         Int(),
-        handler=StatusSummaryUpdater(
-            [re.compile("FP*"), "HDF"], "frames_written", partial(sum, start=0)
+        io_ref=StatusSummaryAttributeIORef(
+            [re.compile(r"[0-9]+"), "HDF"], "frames_written", partial(sum, start=0)
         ),
     )
     writing: AttrR = AttrR(
         Bool(),
-        handler=StatusSummaryUpdater([re.compile("FP*"), "HDF"], "writing", any),
+        io_ref=StatusSummaryAttributeIORef(
+            [re.compile(r"[0-9]+"), "HDF"], "writing", any
+        ),
     )
     _unique_config = [
         "rank",
@@ -103,11 +126,11 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
 
     @cached_property
     def _start_writing_commands(self):
-        return self._collect_commands((re.compile("FP*"), "HDF"), "start_writing")
+        return self._collect_commands((re.compile(r"[0-9]+"), "HDF"), "start_writing")
 
     @cached_property
     def _stop_writing_commands(self):
-        return self._collect_commands((re.compile("FP*"), "HDF"), "stop_writing")
+        return self._collect_commands((re.compile(r"[0-9]+"), "HDF"), "stop_writing")
 
     @command()
     async def start_writing(self) -> None:
@@ -122,13 +145,26 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
         )
 
 
-class FrameProcessorPluginController(OdinAdapterController):
+class FrameProcessorPluginController(OdinSubController):
     """SubController for a plugin in a frameProcessor application."""
 
     async def initialise(self):
         await self._create_commands()
         await self._create_dataset_controllers()
-        return await super().initialise()
+        for parameter in self.parameters:
+            # Remove plugin name included in controller base path
+            parameter.set_path(parameter.path[1:])
+
+            # Handle clash between status and config in FileWriterPlugin
+            # TODO: https://github.com/odin-detector/odin-data/issues/426
+            if parameter.uri == ["status", "hdf", "file_path"]:
+                parameter.set_path(["current_file_path"])
+            elif parameter.uri == ["status", "hdf", "acquisition_id"]:
+                parameter.set_path(["current_acquisition_id"])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )
 
     async def _create_commands(self):
         plugin_name = self.path[-1].lower()
@@ -154,26 +190,29 @@ class FrameProcessorPluginController(OdinAdapterController):
             )
             if dataset_parameters:
                 dataset_controller = FrameProcessorDatasetController(
-                    self.connection, dataset_parameters, f"{self._api_prefix}"
+                    self.connection,
+                    dataset_parameters,
+                    f"{self._api_prefix}",
+                    self._ios,
                 )
-                self.register_sub_controller("DS", dataset_controller)
+                self.add_sub_controller("DS", dataset_controller)
                 await dataset_controller.initialise()
 
     def _construct_command(self, command_name, plugin_name):
         async def submit_command() -> None:
+            logger.info("Executing command", plugin=plugin_name, command=command_name)
             await self.connection.put(
                 f"{self._api_prefix}/command/{plugin_name}/execute", command_name
             )
 
         setattr(self, command_name, Command(submit_command))
 
-    def _process_parameters(self):
-        for parameter in self.parameters:
-            # Remove plugin name included in controller base path
-            parameter.set_path(parameter.path[1:])
 
-
-class FrameProcessorDatasetController(OdinAdapterController):
-    def _process_parameters(self):
+class FrameProcessorDatasetController(OdinSubController):
+    async def initialise(self):
         for parameter in self.parameters:
             parameter.set_path(parameter.uri[3:])
+            self.add_attribute(
+                parameter.name,
+                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+            )

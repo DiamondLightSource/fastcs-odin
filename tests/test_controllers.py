@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.connections.ip_connection import IPConnectionSettings
+from fastcs.controller import Controller
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
@@ -21,14 +22,28 @@ from fastcs_odin.frame_receiver import (
     FrameReceiverDecoderController,
 )
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_adapter_controller import (
-    ConfigFanSender,
-    ParamTreeHandler,
-    StatusSummaryUpdater,
+from fastcs_odin.io.config_fan_sender_attribute_io import (
+    ConfigFanAttributeIO,
+    ConfigFanAttributeIORef,
 )
-from fastcs_odin.odin_controller import OdinAdapterController, OdinController
-from fastcs_odin.util import AdapterType, OdinParameter, OdinParameterMetadata
+from fastcs_odin.io.parameter_attribute_io import (
+    AdapterResponseError,
+    ParameterTreeAttributeIO,
+    ParameterTreeAttributeIORef,
+)
+from fastcs_odin.io.status_summary_attribute_io import (
+    StatusSummaryAttributeIO,
+    StatusSummaryAttributeIORef,
+    initialise_summary_attributes,
+)
+from fastcs_odin.meta_writer import MetaWriterAdapterController
+from fastcs_odin.odin_controller import OdinController, OdinSubController
+from fastcs_odin.util import (
+    AdapterType,
+    OdinParameter,
+    OdinParameterMetadata,
+    create_attribute,
+)
 
 HERE = Path(__file__).parent
 
@@ -48,9 +63,13 @@ def test_create_attributes():
             metadata=OdinParameterMetadata(value=0.1, type="float", writeable=True),
         ),
     ]
-    controller = OdinAdapterController(HTTPConnection("", 0), parameters, "api/0.1")
+    controller = OdinSubController(HTTPConnection("", 0), parameters, "api/0.1", [])
 
-    controller._create_attributes()
+    for parameter in controller.parameters:
+        controller.add_attribute(
+            parameter.name,
+            create_attribute(parameter=parameter, api_prefix=controller._api_prefix),
+        )
 
     match controller.attributes:
         case {
@@ -74,7 +93,7 @@ async def test_create_commands(mocker: MockerFixture):
         {"response": "No commands, path invalid"},
     ]
 
-    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
+    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1", [])
     controller._path = ["hdf"]
 
     await controller._create_commands()
@@ -83,13 +102,14 @@ async def test_create_commands(mocker: MockerFixture):
     await controller.command1()  # type: ignore
     await controller.command2()  # type: ignore
 
-    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1")
+    controller = FrameProcessorPluginController(mock_connection, [], "api/0.1", [])
     controller._path = ["offset"]
 
     await controller._create_commands()
 
 
-def test_fp_process_parameters():
+@pytest.mark.asyncio
+async def test_fp_process_parameters_during_initialise(mocker: MockerFixture):
     parameters = [
         OdinParameter(
             ["0", "status", "hdf", "frames_written"],
@@ -101,9 +121,12 @@ def test_fp_process_parameters():
         ),
     ]
 
-    fpc = FrameProcessorController(HTTPConnection("", 0), parameters, "api/0.1")
+    mock_connection = mocker.AsyncMock()
+    mock_connection.get.return_value = {"names": ["plugin_a", "plugin_b"]}
 
-    fpc._process_parameters()
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1", [])
+
+    await fpc.initialise()
     assert fpc.parameters == [
         OdinParameter(
             uri=["status", "hdf", "frames_written"],
@@ -151,7 +174,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     ctrl = controller._create_adapter_controller(
         controller.connection, parameters, "od", "OtherAdapter"
     )
-    assert isinstance(ctrl, OdinAdapterController)
+    assert isinstance(ctrl, OdinSubController)
 
 
 @pytest.mark.parametrize(
@@ -159,7 +182,7 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     [
         [
             [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
-            OdinAdapterController,
+            OdinSubController,
         ],
         [
             [
@@ -174,6 +197,10 @@ async def test_create_adapter_controller(mocker: MockerFixture):
 async def test_controller_initialise(
     mocker: MockerFixture, mock_get, expected_controller
 ):
+    # Status summary attributes won't work without real sub controllers
+    mocker.patch("fastcs_odin.odin_controller.initialise_summary_attributes")
+    mocker.patch("fastcs_odin.odin_data.initialise_summary_attributes")
+
     controller = OdinController(IPConnectionSettings("", 0))
 
     controller.connection = mocker.AsyncMock()
@@ -183,9 +210,7 @@ async def test_controller_initialise(
 
     await controller.initialise()
 
-    assert isinstance(
-        controller.get_sub_controllers()["TEST_ADAPTER"], expected_controller
-    )
+    assert isinstance(controller.sub_controllers["TEST_ADAPTER"], expected_controller)
 
 
 @pytest.mark.asyncio
@@ -216,7 +241,7 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
         ),
     ]
 
-    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1")
+    fpc = FrameProcessorController(mock_connection, parameters, "api/0.1", [])
 
     await fpc._create_plugin_sub_controllers(["hdf"])
 
@@ -228,7 +253,7 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
             metadata=OdinParameterMetadata(value="", type="str", writeable=True),
         )
     ]
-    controllers = fpc.get_sub_controllers()
+    controllers = fpc.sub_controllers
     match controllers:
         case {
             "HDF": FrameProcessorPluginController(
@@ -243,9 +268,9 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
                 ]
             )
         }:
-            sub_controllers = controllers["HDF"].get_sub_controllers()
+            sub_controllers = controllers["HDF"].sub_controllers
             assert "DS" in sub_controllers
-            assert isinstance(sub_controllers["DS"], OdinAdapterController)
+            assert isinstance(sub_controllers["DS"], OdinSubController)
             assert sub_controllers["DS"].parameters == [
                 OdinParameter(
                     uri=["status", "hdf", "dataset", "compressed_size", "compression"],
@@ -260,132 +285,98 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_param_tree_handler_update(mocker: MockerFixture):
-    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
-    controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock(dtype=int)
+async def test_param_tree_io_update(mocker: MockerFixture):
+    connection = mocker.AsyncMock()
+    connection.get.return_value = {"frames_written": 20}
+    io = ParameterTreeAttributeIO(connection)
+    attr = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames_written"))
 
-    handler = ParamTreeHandler("hdf/frames_written")
+    await io.update(attr)
 
-    controller.connection.get.return_value = {"frames_written": 20}
-    await handler.initialise(controller)
-    await handler.update(attr)
-    attr.set.assert_called_once_with(20)
+    connection.get.assert_called_once_with("hdf/frames_written")
+    assert attr.get() == 20
+
+    # Check validate called to cast value
+    connection.get.return_value = {"frames_written": "20"}
+
+    await io.update(attr)
+
+    assert attr.get() == 20
 
 
 @pytest.mark.asyncio
-async def test_param_tree_handler_update_exception(mocker: MockerFixture):
-    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
-    controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock(dtype=int)
+async def test_param_tree_io_send(mocker: MockerFixture):
+    connection = mocker.AsyncMock()
+    io = ParameterTreeAttributeIO(connection)
+    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames"))
 
-    handler = ParamTreeHandler("hdf/frames_written")
+    await io.send(attr, 10)
 
-    controller.connection.get.return_value = {"frames_wroted": 20}
-    error_mock = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
-    await handler.initialise(controller)
-    await handler.update(attr)
-    error_mock.assert_called_once_with(
-        "Update loop failed for %s:\n%s", "hdf/frames_written", mocker.ANY
+    connection.put.assert_called_once_with("hdf/frames", 10)
+
+
+@pytest.mark.asyncio
+async def test_param_tree_handler_send_exception(mocker: MockerFixture):
+    connection = mocker.AsyncMock()
+    connection.put.return_value = {"error": "No, you can't do that"}
+    io = ParameterTreeAttributeIO(connection)
+    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames"))
+
+    with pytest.raises(AdapterResponseError, match="No, you can't do that"):
+        await io.send(attr, -1)
+
+    connection.put.assert_called_once_with("hdf/frames", -1)
+
+
+@pytest.mark.asyncio
+async def test_status_summary_attribute_io():
+    controller = Controller()
+    fpa_controller = Controller()
+    fp1_controller = Controller()
+    fp2_controller = Controller()
+    hdf1_controller = Controller()
+    hdf2_controller = Controller()
+
+    controller.add_sub_controller("FP", fpa_controller)
+    fpa_controller.add_sub_controller("FP0", fp1_controller)
+    fpa_controller.add_sub_controller("FP1", fp2_controller)
+    fp1_controller.add_sub_controller("HDF", hdf1_controller)
+    fp2_controller.add_sub_controller("HDF", hdf2_controller)
+
+    io = StatusSummaryAttributeIO()
+
+    frames_written = AttrR(
+        Int(),
+        io_ref=StatusSummaryAttributeIORef(
+            ["FP", re.compile("FP*"), "HDF"], "frames_written", partial(sum, start=0)
+        ),
     )
-
-
-@pytest.mark.asyncio
-async def test_param_tree_handler_put(mocker: MockerFixture):
-    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
-    controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock()
-
-    handler = ParamTreeHandler("hdf/frames")
-
-    # Test put
-    await handler.initialise(controller)
-    await handler.put(attr, 10)
-    controller.connection.put.assert_called_once_with("hdf/frames", 10)
-
-
-@pytest.mark.asyncio
-async def test_param_tree_handler_put_exception(mocker: MockerFixture):
-    controller = OdinAdapterController(mocker.AsyncMock(), [], "")
-    controller.connection = mocker.AsyncMock()
-    attr = mocker.MagicMock()
-
-    handler = ParamTreeHandler("hdf/frames")
-
-    controller.connection.put.return_value = {"error": "No, you can't do that"}
-    error_mock = mocker.patch("fastcs_odin.odin_adapter_controller.logging.error")
-    await handler.initialise(controller)
-    await handler.put(attr, -1)
-    error_mock.assert_called_once_with(
-        "Put %s = %s failed:\n%s", "hdf/frames", -1, mocker.ANY
+    controller.frames_written = frames_written
+    writing = AttrR(
+        Bool(),
+        io_ref=StatusSummaryAttributeIORef(
+            ["FP", re.compile("FP*"), ("HDF",)], "writing", any
+        ),
     )
+    controller.writing = writing
 
+    hdf1_controller.frames_written = AttrR(Int(), initial_value=50)
+    hdf2_controller.frames_written = AttrR(Int(), initial_value=100)
+    hdf1_controller.writing = AttrR(Bool(), initial_value=False)
+    hdf_writing = AttrR(Bool(), initial_value=True)
+    hdf2_controller.writing = hdf_writing
 
-@pytest.mark.asyncio
-async def test_param_tree_handler_casts_value_to_attr_dtype(mocker: MockerFixture):
-    controller_mock = mocker.MagicMock()
-    get_mock = mocker.AsyncMock()
-    get_mock.return_value = {"error": ["error1", "error2"]}
-    controller_mock.connection.get = get_mock
-    attribute_mock = mocker.MagicMock()
-    set_mock = mocker.AsyncMock()
-    attribute_mock.set = set_mock
-    handler = ParamTreeHandler("fp/0/status/error")
-    handler._controller = controller_mock
-    await handler.update(attribute_mock)
-    attribute_mock.dtype.assert_called_once_with(["error1", "error2"])
-    set_mock.assert_called_once_with(attribute_mock.dtype.return_value)
+    initialise_summary_attributes(controller)
 
+    await io.update(frames_written)
+    assert frames_written.get() == 150
 
-@pytest.mark.asyncio
-async def test_status_summary_updater(mocker: MockerFixture):
-    controller = mocker.MagicMock()
-    od_controller = mocker.MagicMock()
-    fp_controller = mocker.MagicMock()
-    fpx_controller = mocker.MagicMock()
-    hdf_controller = mocker.MagicMock()
-    attr = mocker.AsyncMock()
+    await io.update(writing)
+    assert writing.get()
 
-    controller.get_sub_controllers.return_value = {"OD": od_controller}
-    od_controller.get_sub_controllers.return_value = {"FP": fp_controller}
-    fp_controller.get_sub_controllers.return_value = {
-        "FP0": fpx_controller,
-        "FP1": fpx_controller,
-    }
-    fpx_controller.get_sub_controllers.return_value = {"HDF": hdf_controller}
-
-    hdf_controller.attributes = {}
-
-    mock_frames_written = mocker.create_autospec(AttrR)
-    mock_frames_written.get.return_value = 50
-    hdf_controller.attributes["frames_written"] = mock_frames_written
-
-    handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), "HDF"],
-        "frames_written",
-        partial(sum, start=0),
-    )
-
-    await handler.initialise(controller)
-    await handler.update(attr)
-    attr.set.assert_called_once_with(100)
-
-    handler = StatusSummaryUpdater(
-        ["OD", ("FP",), re.compile("FP*"), ("HDF",)], "writing", any
-    )
-
-    mock_writing = mocker.create_autospec(AttrR)
-    mock_writing.get.side_effect = [True, False]
-    hdf_controller.attributes["writing"] = mock_writing
-
-    await handler.initialise(controller)
-    await handler.update(attr)
-    attr.set.assert_called_with(True)
-
-    hdf_controller.attributes["writing"].get.side_effect = [False, False]
-    await handler.initialise(controller)
-    await handler.update(attr)
-    attr.set.assert_called_with(False)
+    await hdf_writing.update(False)
+    await io.update(writing)
+    assert not writing.get()
 
 
 @pytest.mark.asyncio
@@ -393,42 +384,27 @@ async def test_status_summary_updater(mocker: MockerFixture):
 async def test_status_summary_updater_raise_exception_if_controller_not_found(
     mock_sub_controller, mocker: MockerFixture
 ):
-    controller = mocker.MagicMock()
-    controller.get_sub_controllers.return_value = {"OD": mocker.MagicMock()}
+    controller = Controller()
 
-    handler = StatusSummaryUpdater(["OD", mock_sub_controller], "writing", any)
-    with pytest.raises(ValueError, match="not found"):
-        await handler.initialise(controller)
-
-
-@pytest.mark.asyncio
-async def test_status_summary_updater_raises_exception_if_attribute_not_found(
-    mocker: MockerFixture,
-):
-    controller = mocker.MagicMock()
-    controller.get_sub_controllers.return_value = {
-        "OD": OdinController(mocker.MagicMock())
-    }
-
-    handler = StatusSummaryUpdater(["OD"], "some_attribute", any)
-    with pytest.raises(KeyError, match="does not have attribute"):
-        await handler.initialise(controller)
+    controller.writing = AttrR(
+        Bool(), StatusSummaryAttributeIORef(["OD", mock_sub_controller], "writing", any)
+    )
+    with pytest.raises(ValueError, match=r"Sub controller .* not found"):
+        initialise_summary_attributes(controller)
 
 
 @pytest.mark.asyncio
 async def test_config_fan_sender(mocker: MockerFixture):
-    controller = mocker.MagicMock()
-    attr = mocker.MagicMock(AttrRW)
     attr1 = mocker.AsyncMock()
     attr2 = mocker.AsyncMock()
 
-    handler = ConfigFanSender([attr1, attr2])
+    attr = AttrRW(Int(), ConfigFanAttributeIORef([attr1, attr2]))
+    io = ConfigFanAttributeIO()
 
-    await handler.initialise(controller)
-    await handler.put(attr, 10)
-    attr1.process.assert_called_once_with(10)
-    attr2.process.assert_called_once_with(10)
-    attr.set.assert_called_once_with(10)
+    await io.send(attr, 10)
+    attr1.put.assert_called_once_with(10, sync_setpoint=True)
+    attr2.put.assert_called_once_with(10, sync_setpoint=True)
+    assert attr.get() == 10
 
 
 @pytest.mark.asyncio
@@ -454,15 +430,15 @@ async def test_frame_reciever_controllers():
         invalid_decoder_parameter,
     ]
     fr_controller = FrameReceiverController(
-        HTTPConnection("", 0), parameters, "api/0.1"
+        HTTPConnection("", 0), parameters, "api/0.1", []
     )
     await fr_controller.initialise()
     assert isinstance(fr_controller, FrameReceiverController)
     assert valid_non_decoder_parameter in fr_controller.parameters
     assert len(fr_controller.parameters) == 1
-    assert "DECODER" in fr_controller.get_sub_controllers()
+    assert "DECODER" in fr_controller.sub_controllers
 
-    decoder_controller = fr_controller.get_sub_controllers()["DECODER"]
+    decoder_controller = fr_controller.sub_controllers["DECODER"]
     assert isinstance(decoder_controller, FrameReceiverDecoderController)
     assert valid_decoder_parameter in decoder_controller.parameters
     assert invalid_decoder_parameter not in decoder_controller.parameters
@@ -473,17 +449,19 @@ async def test_frame_reciever_controllers():
 @pytest.mark.asyncio
 async def test_frame_processor_start_and_stop_writing(mocker: MockerFixture):
     fpac = FrameProcessorAdapterController(
-        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1"
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
     )
-    fpc = FrameProcessorController(mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1")
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
     await fpc._create_plugin_sub_controllers(["hdf"])
 
     # Mock the commands to check calls
-    hdf = fpc.get_sub_controllers()["HDF"]
+    hdf = fpc.sub_controllers["HDF"]
     hdf.start_writing = mocker.AsyncMock()  # type: ignore
     hdf.stop_writing = mocker.AsyncMock()  # type: ignore
 
-    fpac.register_sub_controller("FP0", fpc)
+    fpac[0] = fpc
 
     # Top level FP commands should collect and call lower level commands
     await fpac.start_writing()
@@ -497,12 +475,14 @@ async def test_top_level_frame_processor_commands_raise_exception(
     mocker: MockerFixture,
 ):
     fpac = FrameProcessorAdapterController(
-        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1"
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
     )
 
-    fpc = FrameProcessorController(mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1")
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
     await fpc._create_plugin_sub_controllers(["hdf"])
-    fpac.register_sub_controller("FP0", fpc)
+    fpac[0] = fpc
 
     with pytest.raises(AttributeError, match="does not have"):
         await fpac.start_writing()
