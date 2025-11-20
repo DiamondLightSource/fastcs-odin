@@ -58,16 +58,20 @@ def initialise_summary_attributes(controller):
 
     for attribute in controller.attributes.values():
         if isinstance(attribute.io_ref, StatusSummaryAttributeIORef):
-            attributes = [
-                attr
-                for sub_controller in _filter_sub_controllers(
-                    controller, attribute.io_ref.path_filter
-                )
-                if isinstance(
-                    attr := sub_controller.attributes[attribute.io_ref.attribute_name],
-                    AttrR,
-                )
-            ]
+            attributes: Sequence[AttrR] = []
+            for sub_controller in _filter_sub_controllers(
+                controller, attribute.io_ref.path_filter
+            ):
+                try:
+                    attr = sub_controller.attributes[attribute.io_ref.attribute_name]
+                except KeyError as err:
+                    raise KeyError(
+                        f"Sub controller {sub_controller} does not have attribute "
+                        f"'{attribute.io_ref.attribute_name}' required by {controller} "
+                        f"status summary {attribute.io_ref.path_filter}"
+                    ) from err
+                if isinstance(attr, AttrR):
+                    attributes.append(attr)
 
             attribute.io_ref.set_attributes(attributes)
 

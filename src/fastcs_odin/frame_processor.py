@@ -1,14 +1,19 @@
+import asyncio
 import re
 from collections.abc import Sequence
-from functools import partial
+from functools import cached_property, partial
 
 from fastcs.attributes import AttrR
 from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
 from fastcs.logging import bind_logger
+from fastcs.wrappers import command
 from pydantic import ValidationError
 
-from fastcs_odin.io.status_summary_attribute_io import StatusSummaryAttributeIORef
+from fastcs_odin.io.status_summary_attribute_io import (
+    StatusSummaryAttributeIORef,
+    _filter_sub_controllers,
+)
 from fastcs_odin.odin_data import OdinDataAdapterController
 from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import (
@@ -98,6 +103,46 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     ]
     _subcontroller_label = "FP"
     _subcontroller_cls = FrameProcessorController
+
+    def _collect_commands(
+        self,
+        path_filter: Sequence[str | tuple[str, ...] | re.Pattern],
+        command_name: str,
+    ):
+        commands = []
+
+        controllers = list(_filter_sub_controllers(self, path_filter))
+
+        for controller in controllers:
+            try:
+                cmd = getattr(controller, command_name)
+                commands.append(cmd)
+            except AttributeError as err:
+                raise AttributeError(
+                    f"Sub controller {controller} does not have command "
+                    f"'{command_name}' required by {self} command fan out {path_filter}"
+                ) from err
+        return commands
+
+    @cached_property
+    def _start_writing_commands(self):
+        return self._collect_commands((re.compile(r"[0-9]+"), "HDF"), "start_writing")
+
+    @cached_property
+    def _stop_writing_commands(self):
+        return self._collect_commands((re.compile(r"[0-9]+"), "HDF"), "stop_writing")
+
+    @command()
+    async def start_writing(self) -> None:
+        await asyncio.gather(
+            *(start_writing() for start_writing in self._start_writing_commands)
+        )
+
+    @command()
+    async def stop_writing(self) -> None:
+        await asyncio.gather(
+            *(stop_writing() for stop_writing in self._stop_writing_commands)
+        )
 
 
 class FrameProcessorPluginController(OdinSubController):

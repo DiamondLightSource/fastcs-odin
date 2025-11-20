@@ -381,7 +381,7 @@ async def test_status_summary_attribute_io():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_sub_controller", ("FP", ("FP",), re.compile("FP")))
-async def test_status_summary_updater_raise_exception(
+async def test_status_summary_updater_raise_exception_if_controller_not_found(
     mock_sub_controller, mocker: MockerFixture
 ):
     controller = Controller()
@@ -444,3 +444,59 @@ async def test_frame_reciever_controllers():
     assert invalid_decoder_parameter not in decoder_controller.parameters
     # index, status, decoder parts removed from path
     assert decoder_controller.parameters[0]._path == ["packets_dropped"]
+
+
+@pytest.mark.asyncio
+async def test_frame_processor_start_and_stop_writing(mocker: MockerFixture):
+    fpac = FrameProcessorAdapterController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    await fpc._create_plugin_sub_controllers(["hdf"])
+
+    # Mock the commands to check calls
+    hdf = fpc.sub_controllers["HDF"]
+    hdf.start_writing = mocker.AsyncMock()  # type: ignore
+    hdf.stop_writing = mocker.AsyncMock()  # type: ignore
+
+    fpac[0] = fpc
+
+    # Top level FP commands should collect and call lower level commands
+    await fpac.start_writing()
+    await fpac.stop_writing()
+    assert len(hdf.start_writing.mock_calls) == 1  # type: ignore
+    assert len(hdf.stop_writing.mock_calls) == 1  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_top_level_frame_processor_commands_raise_exception(
+    mocker: MockerFixture,
+):
+    fpac = FrameProcessorAdapterController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    await fpc._create_plugin_sub_controllers(["hdf"])
+    fpac[0] = fpc
+
+    with pytest.raises(AttributeError, match="does not have"):
+        await fpac.start_writing()
+
+
+@pytest.mark.asyncio
+async def test_status_summary_updater_raises_exception_if_attribute_not_found():
+    controller = Controller()
+    sub_controller = Controller()
+
+    controller.add_sub_controller("OD", sub_controller)
+
+    controller.writing = AttrR(
+        Bool(), StatusSummaryAttributeIORef(["OD"], "some_attribute", any)
+    )
+    with pytest.raises(KeyError, match=r"Sub controller .* does not have attribute"):
+        initialise_summary_attributes(controller)
