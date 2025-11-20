@@ -119,8 +119,8 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
                 commands.append(cmd)
             except AttributeError as err:
                 raise AttributeError(
-                    f"Sub controller {controller} "
-                    f"does not have command '{command_name}'."
+                    f"Sub controller {controller} does not have command "
+                    f"'{command_name}' required by {self} command fan out {path_filter}"
                 ) from err
         return commands
 

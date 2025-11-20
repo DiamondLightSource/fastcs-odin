@@ -66,8 +66,9 @@ def initialise_summary_attributes(controller):
                     attr = sub_controller.attributes[attribute.io_ref.attribute_name]
                 except KeyError as err:
                     raise KeyError(
-                        f"Sub controller {sub_controller} "
-                        f"does not have attribute '{attribute.io_ref.attribute_name}'."
+                        f"Sub controller {sub_controller} does not have attribute "
+                        f"'{attribute.io_ref.attribute_name}' required by {controller} "
+                        f"status summary {attribute.io_ref.path_filter}"
                     ) from err
                 if isinstance(attr, AttrR):
                     attributes.append(attr)
