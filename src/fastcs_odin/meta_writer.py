@@ -1,6 +1,6 @@
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int, String
-from fastcs.wrappers import command
+from fastcs.methods import command
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
 from fastcs_odin.odin_subcontroller import OdinSubController

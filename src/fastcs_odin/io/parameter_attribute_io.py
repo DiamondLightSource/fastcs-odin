@@ -1,9 +1,7 @@
 from dataclasses import KW_ONLY, dataclass
 
-from fastcs.attribute_io import AttributeIO
-from fastcs.attribute_io_ref import AttributeIORef
-from fastcs.attributes import AttrR, AttrW
-from fastcs.datatypes import T
+from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrW
+from fastcs.datatypes import DType_T
 from fastcs.logging import bind_logger
 
 from fastcs_odin.http_connection import HTTPConnection, ValueType
@@ -27,7 +25,7 @@ class ParameterTreeAttributeIORef(AttributeIORef):
     update_period: float | None = 0.2
 
 
-class ParameterTreeAttributeIO(AttributeIO[T, ParameterTreeAttributeIORef]):
+class ParameterTreeAttributeIO(AttributeIO[DType_T, ParameterTreeAttributeIORef]):
     """AttributeIO for ``ParameterTreeAttributeIORef`` Attributes"""
 
     def __init__(self, connection: HTTPConnection):
@@ -35,7 +33,7 @@ class ParameterTreeAttributeIO(AttributeIO[T, ParameterTreeAttributeIORef]):
 
         self._connection = connection
 
-    async def update(self, attr: AttrR[T, ParameterTreeAttributeIORef]) -> None:
+    async def update(self, attr: AttrR[DType_T, ParameterTreeAttributeIORef]) -> None:
         # TODO: We should use pydantic validation here
         response = await self._connection.get(attr.io_ref.path)
 
@@ -47,7 +45,9 @@ class ParameterTreeAttributeIO(AttributeIO[T, ParameterTreeAttributeIORef]):
         value = response.get(parameter)
         await attr.update(attr.datatype.validate(value))
 
-    async def send(self, attr: AttrW[T, ParameterTreeAttributeIORef], value: T) -> None:
+    async def send(
+        self, attr: AttrW[DType_T, ParameterTreeAttributeIORef], value: DType_T
+    ) -> None:
         assert isinstance(value, ValueType)
         logger.info("Sending parameter", path=attr.io_ref.path, value=value)
         response = await self._connection.put(attr.io_ref.path, value)

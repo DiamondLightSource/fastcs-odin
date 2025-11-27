@@ -6,9 +6,9 @@ from enum import Enum
 from typing import Any, Literal, TypeVar
 
 from fastcs.attributes import AttrR, AttrRW
-from fastcs.controller import BaseController
+from fastcs.controllers import BaseController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
-from fastcs.util import snake_to_pascal
+from fastcs.transports.epics.util import snake_to_pascal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
