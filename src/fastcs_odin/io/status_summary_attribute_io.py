@@ -3,10 +3,8 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import KW_ONLY, dataclass
 from typing import Generic, TypeVar
 
-from fastcs.attribute_io import AttributeIO
-from fastcs.attribute_io_ref import AttributeIORef
-from fastcs.attributes import AttrR
-from fastcs.controller import BaseController
+from fastcs.attributes import AttributeIO, AttributeIORef, AttrR
+from fastcs.controllers import BaseController
 
 In = TypeVar("In", float, int, bool, str)
 Out = TypeVar("Out", float, int, bool, str)

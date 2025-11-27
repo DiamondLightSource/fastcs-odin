@@ -4,10 +4,9 @@ from collections.abc import Sequence
 from functools import cached_property, partial
 
 from fastcs.attributes import AttrR
-from fastcs.cs_methods import Command
 from fastcs.datatypes import Bool, Int
 from fastcs.logging import bind_logger
-from fastcs.wrappers import command
+from fastcs.methods import Command, command
 from pydantic import ValidationError
 
 from fastcs_odin.io.status_summary_attribute_io import (

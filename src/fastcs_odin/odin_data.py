@@ -1,11 +1,9 @@
 import logging
 from collections.abc import Sequence
 
-from fastcs.attribute_io import AttributeIO
-from fastcs.attribute_io_ref import AttributeIORefT
-from fastcs.attributes import AttrW
-from fastcs.controller import ControllerVector
-from fastcs.datatypes import T
+from fastcs.attributes import AttributeIO, AttributeIORefT, AttrW
+from fastcs.controllers import ControllerVector
+from fastcs.datatypes import DType_T
 
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
@@ -31,7 +29,7 @@ class OdinDataAdapterController(ControllerVector):
         connection: HTTPConnection,
         parameters: list[OdinParameter],
         api_prefix: str,
-        ios: Sequence[AttributeIO[T, AttributeIORefT]],
+        ios: Sequence[AttributeIO[DType_T, AttributeIORefT]],
     ):
         """
         Args:

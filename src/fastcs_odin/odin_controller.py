@@ -1,6 +1,6 @@
 from fastcs.attributes import AttrR
 from fastcs.connections.ip_connection import IPConnectionSettings
-from fastcs.controller import BaseController, Controller
+from fastcs.controllers import BaseController, Controller
 from fastcs.datatypes import Bool
 
 from fastcs_odin.eiger_fan import EigerFanAdapterController

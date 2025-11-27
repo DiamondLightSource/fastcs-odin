@@ -1,15 +1,11 @@
 from collections.abc import Sequence
 
-from fastcs.attribute_io import AttributeIO
-from fastcs.attribute_io_ref import AttributeIORefT
-from fastcs.controller import Controller
-from fastcs.datatypes import T
+from fastcs.attributes import AttributeIO, AttributeIORefT
+from fastcs.controllers import Controller
+from fastcs.datatypes import DType_T
 
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.util import (
-    OdinParameter,
-    create_attribute,
-)
+from fastcs_odin.util import OdinParameter, create_attribute
 
 
 class OdinSubController(Controller):
@@ -20,7 +16,7 @@ class OdinSubController(Controller):
         connection: HTTPConnection,
         parameters: list[OdinParameter],
         api_prefix: str,
-        ios: Sequence[AttributeIO[T, AttributeIORefT]],
+        ios: Sequence[AttributeIO[DType_T, AttributeIORefT]],
     ):
         """
         Args:

@@ -2,10 +2,8 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from fastcs.attribute_io import AttributeIO
-from fastcs.attribute_io_ref import AttributeIORef
-from fastcs.attributes import AttrRW, AttrW
-from fastcs.datatypes import T
+from fastcs.attributes import AttributeIO, AttributeIORef, AttrRW, AttrW
+from fastcs.datatypes import DType_T
 from fastcs.logging import bind_logger
 
 logger = bind_logger(logger_name=__name__)
@@ -22,10 +20,10 @@ class ConfigFanAttributeIORef(AttributeIORef):
     attributes: list[AttrW]
 
 
-class ConfigFanAttributeIO(AttributeIO[T, ConfigFanAttributeIORef]):
+class ConfigFanAttributeIO(AttributeIO[DType_T, ConfigFanAttributeIORef]):
     """AttributeIO for ``ConfigFanAttributeIORef`` Attributes"""
 
-    async def send(self, attr: AttrW[T, ConfigFanAttributeIORef], value: Any):
+    async def send(self, attr: AttrW[DType_T, ConfigFanAttributeIORef], value: Any):
         logger.info("Fanning out put", value=value)
         await asyncio.gather(
             *[

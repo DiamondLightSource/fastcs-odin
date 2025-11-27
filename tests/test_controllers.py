@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 from fastcs.attributes import AttrR, AttrRW
-from fastcs.connections.ip_connection import IPConnectionSettings
-from fastcs.controller import Controller
+from fastcs.connections import IPConnectionSettings
+from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
