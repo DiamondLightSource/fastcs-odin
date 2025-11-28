@@ -18,7 +18,6 @@ from fastcs_odin.frame_processor import (
 from fastcs_odin.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
-    FrameReceiverDecoderController,
 )
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import (
@@ -429,15 +428,7 @@ async def test_frame_reciever_controllers():
     await fr_controller.initialise()
     assert isinstance(fr_controller, FrameReceiverController)
     assert valid_non_decoder_parameter in fr_controller.parameters
-    assert len(fr_controller.parameters) == 1
-    assert "DECODER" in fr_controller.sub_controllers
-
-    decoder_controller = fr_controller.sub_controllers["DECODER"]
-    assert isinstance(decoder_controller, FrameReceiverDecoderController)
-    assert valid_decoder_parameter in decoder_controller.parameters
-    assert invalid_decoder_parameter not in decoder_controller.parameters
-    # index, status, decoder parts removed from path
-    assert decoder_controller.parameters[0]._path == ["packets_dropped"]
+    assert len(fr_controller.parameters) == 2
 
 
 @pytest.mark.asyncio
