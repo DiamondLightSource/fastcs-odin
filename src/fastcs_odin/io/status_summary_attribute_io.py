@@ -27,7 +27,7 @@ class StatusSummaryAttributeIORef(AttributeIORef, Generic[In, Out]):
 
     path_filter: list[str | tuple[str, ...] | re.Pattern]
     attribute_name: str
-    accumulator: Callable[[Iterable[In]], Out]
+    accumulator: Callable[[Sequence[In]], Out]
     _attributes: Sequence[AttrR[In]] | None = None
     _: KW_ONLY
     update_period: float | None = 0.2
