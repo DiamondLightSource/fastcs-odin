@@ -5,7 +5,6 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
-from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
@@ -321,20 +320,3 @@ async def test_mw_initialise(mocker: MockerFixture):
 
     # Check `0/status/` removed
     assert meta_writer.timestamp.path == []  # type: ignore
-
-
-@pytest.mark.asyncio
-async def test_ef_initialise(mocker: MockerFixture):
-    with (HERE / "input/ef_response.json").open() as f:
-        response = json.loads(f.read())
-
-    mock_connection = mocker.MagicMock()
-
-    parameters = create_odin_parameters(response)
-    eiger_fan = EigerFanAdapterController(mock_connection, parameters, "prefix", [])
-    await eiger_fan.initialise()
-
-    assert len(eiger_fan.attributes) == 28
-
-    # Check `0/status/` removed
-    assert eiger_fan.timestamp.path == []  # type: ignore

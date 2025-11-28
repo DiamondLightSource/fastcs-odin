@@ -10,7 +10,6 @@ from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
-from fastcs_odin.eiger_fan import EigerFanAdapterController
 from fastcs_odin.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
@@ -165,11 +164,6 @@ async def test_create_adapter_controller(mocker: MockerFixture):
         controller.connection, parameters, "mw", AdapterType.META_WRITER
     )
     assert isinstance(ctrl, MetaWriterAdapterController)
-
-    ctrl = controller._create_adapter_controller(
-        controller.connection, parameters, "ef", AdapterType.EIGER_FAN
-    )
-    assert isinstance(ctrl, EigerFanAdapterController)
 
     ctrl = controller._create_adapter_controller(
         controller.connection, parameters, "od", "OtherAdapter"
