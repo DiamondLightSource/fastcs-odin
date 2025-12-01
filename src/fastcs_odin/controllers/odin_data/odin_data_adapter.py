@@ -5,10 +5,9 @@ from fastcs.attributes import AttributeIO, AttributeIORefT, AttrW
 from fastcs.controllers import ControllerVector
 from fastcs.datatypes import DType_T
 
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.http_connection import HTTPConnection
-from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORef
-from fastcs_odin.io.status_summary_attribute_io import initialise_summary_attributes
-from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.io import ConfigFanAttributeIORef, initialise_summary_attributes
 from fastcs_odin.util import (
     OdinParameter,
     create_attribute,
@@ -18,7 +17,7 @@ from fastcs_odin.util import (
 
 
 class OdinDataAdapterController(ControllerVector):
-    """Sub controller for the frame processor adapter in an odin control server."""
+    """Base class for frame processor and frame receiver adapter controllers"""
 
     _unique_config: list[str] = []
     _subcontroller_label: str = "OD"

@@ -9,7 +9,7 @@ from fastcs_odin.util import OdinParameter, create_attribute
 
 
 class OdinSubController(Controller):
-    """Base class for exposing parameters from an odin control adapter."""
+    """Base sub controller for exposing parameters from an odin control server"""
 
     def __init__(
         self,

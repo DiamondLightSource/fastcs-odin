@@ -2,8 +2,14 @@ from fastcs.attributes import AttributeIO
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controllers import BaseController, Controller
 
-from fastcs_odin.frame_processor import FrameProcessorAdapterController
-from fastcs_odin.frame_receiver import FrameReceiverAdapterController
+from fastcs_odin.controllers.odin_data.frame_processor import (
+    FrameProcessorAdapterController,
+)
+from fastcs_odin.controllers.odin_data.frame_receiver import (
+    FrameReceiverAdapterController,
+)
+from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIO
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIO
@@ -11,11 +17,12 @@ from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIO,
     initialise_summary_attributes,
 )
-from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_subcontroller import OdinSubController
-from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
-
-REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
+from fastcs_odin.util import (
+    REQUEST_METADATA_HEADER,
+    AdapterType,
+    OdinParameter,
+    create_odin_parameters,
+)
 
 
 class OdinController(Controller):

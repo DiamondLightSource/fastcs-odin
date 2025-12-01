@@ -10,15 +10,17 @@ from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
-from fastcs_odin.frame_processor import (
+from fastcs_odin.controllers.odin_controller import OdinController, OdinSubController
+from fastcs_odin.controllers.odin_data.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
     FrameProcessorPluginController,
 )
-from fastcs_odin.frame_receiver import (
+from fastcs_odin.controllers.odin_data.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
+from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import (
     ConfigFanAttributeIO,
@@ -34,8 +36,6 @@ from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIORef,
     initialise_summary_attributes,
 )
-from fastcs_odin.meta_writer import MetaWriterAdapterController
-from fastcs_odin.odin_controller import OdinController, OdinSubController
 from fastcs_odin.util import (
     AdapterType,
     OdinParameter,
@@ -191,8 +191,12 @@ async def test_controller_initialise(
     mocker: MockerFixture, mock_get, expected_controller
 ):
     # Status summary attributes won't work without real sub controllers
-    mocker.patch("fastcs_odin.odin_controller.initialise_summary_attributes")
-    mocker.patch("fastcs_odin.odin_data.initialise_summary_attributes")
+    mocker.patch(
+        "fastcs_odin.controllers.odin_controller.initialise_summary_attributes"
+    )
+    mocker.patch(
+        "fastcs_odin.controllers.odin_data.odin_data_adapter.initialise_summary_attributes"
+    )
 
     controller = OdinController(IPConnectionSettings("", 0))
 
