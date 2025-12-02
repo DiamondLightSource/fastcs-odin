@@ -5,7 +5,7 @@ from typing import Annotated
 import requests
 import typer
 
-from fastcs_odin.odin_controller import REQUEST_METADATA_HEADER
+from fastcs_odin.util import REQUEST_METADATA_HEADER
 
 HERE = Path(__file__).parent
 

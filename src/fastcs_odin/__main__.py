@@ -8,7 +8,7 @@ from fastcs.logging import LogLevel, configure_logging
 from fastcs.transports.epics.ca.ioc import EpicsIOCOptions
 from fastcs.transports.epics.ca.transport import EpicsCATransport, EpicsGUIOptions
 
-from fastcs_odin.odin_controller import OdinController
+from fastcs_odin.controllers import OdinController
 
 from . import __version__
 

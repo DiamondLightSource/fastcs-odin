@@ -5,15 +5,15 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
-from fastcs_odin.frame_processor import (
+from fastcs_odin.controllers.odin_data.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
 )
-from fastcs_odin.frame_receiver import (
+from fastcs_odin.controllers.odin_data.frame_receiver import (
     FrameReceiverAdapterController,
     FrameReceiverController,
 )
-from fastcs_odin.meta_writer import MetaWriterAdapterController
+from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
 from fastcs_odin.util import (
     OdinParameter,
     OdinParameterMetadata,

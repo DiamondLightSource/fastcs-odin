@@ -2,9 +2,8 @@ from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int, String
 from fastcs.methods import command
 
-from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
-from fastcs_odin.odin_subcontroller import OdinSubController
-from fastcs_odin.util import create_attribute
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
+from fastcs_odin.util import ParameterTreeAttributeIORef, create_attribute
 
 
 class MetaWriterAdapterController(OdinSubController):

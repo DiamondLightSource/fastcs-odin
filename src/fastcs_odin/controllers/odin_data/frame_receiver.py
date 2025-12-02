@@ -1,9 +1,13 @@
-from fastcs_odin.odin_data import OdinDataAdapterController
-from fastcs_odin.odin_subcontroller import OdinSubController
+from fastcs_odin.controllers.odin_data.odin_data_adapter import (
+    OdinDataAdapterController,
+)
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.util import create_attribute, remove_metadata_fields_paths
 
 
 class FrameReceiverController(OdinSubController):
+    """Controller for a frameReceiver application"""
+
     async def initialise(self):
         self.parameters = remove_metadata_fields_paths(self.parameters)
 
@@ -24,6 +28,8 @@ class FrameReceiverController(OdinSubController):
 
 
 class FrameReceiverAdapterController(OdinDataAdapterController):
+    """Controller for a frame receiver adapter in an odin control serve."""
+
     _subcontroller_label = "FR"
     _subcontroller_cls = FrameReceiverController
     _unique_config = [

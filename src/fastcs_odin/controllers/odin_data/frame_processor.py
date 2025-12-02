@@ -9,12 +9,14 @@ from fastcs.logging import bind_logger
 from fastcs.methods import Command, command
 from pydantic import ValidationError
 
+from fastcs_odin.controllers.odin_data.odin_data_adapter import (
+    OdinDataAdapterController,
+)
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIORef,
     _filter_sub_controllers,
 )
-from fastcs_odin.odin_data import OdinDataAdapterController
-from fastcs_odin.odin_subcontroller import OdinSubController
 from fastcs_odin.util import (
     AllowedCommandsResponse,
     OdinParameter,
@@ -80,6 +82,8 @@ class FrameProcessorController(OdinSubController):
 
 
 class FrameProcessorAdapterController(OdinDataAdapterController):
+    """Controller for a frame processor adapter"""
+
     frames_written: AttrR = AttrR(
         Int(),
         io_ref=StatusSummaryAttributeIORef(
@@ -145,7 +149,7 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
 
 
 class FrameProcessorPluginController(OdinSubController):
-    """SubController for a plugin in a frameProcessor application."""
+    """Controller for a plugin in a frameProcessor application."""
 
     async def initialise(self):
         await self._create_commands()
@@ -208,6 +212,8 @@ class FrameProcessorPluginController(OdinSubController):
 
 
 class FrameProcessorDatasetController(OdinSubController):
+    """Controller for datasets in the HDF plugin of a frameProcessor application"""
+
     async def initialise(self):
         for parameter in self.parameters:
             parameter.set_path(parameter.uri[3:])
