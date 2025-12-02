@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal, TypeVar
 
 from fastcs.attributes import AttrR, AttrRW
@@ -18,11 +18,10 @@ def is_metadata_object(v: Any) -> bool:
     return isinstance(v, dict) and "writeable" in v and "type" in v
 
 
-class AdapterType(str, Enum):
+class AdapterType(StrEnum):
     FRAME_PROCESSOR = "FrameProcessorAdapter"
     FRAME_RECEIVER = "FrameReceiverAdapter"
     META_WRITER = "MetaListenerAdapter"
-    EIGER_FAN = "EigerFanAdapter"
 
 
 class OdinParameterMetadata(BaseModel):
