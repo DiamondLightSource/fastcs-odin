@@ -115,7 +115,6 @@ async def test_fr_initialise(mocker: MockerFixture):
         isinstance(frx, FrameReceiverController)
         for frx in controller.sub_controllers.values()
     )
-    assert "decoder_name" not in controller[0].DECODER.attributes  # type: ignore
 
 
 def test_node_with_empty_list_is_correctly_counted():

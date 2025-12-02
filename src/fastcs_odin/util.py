@@ -8,10 +8,13 @@ from typing import Any, Literal, TypeVar
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import BaseController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
+from fastcs.logging import bind_logger
 from fastcs.transports.epics.util import snake_to_pascal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
+
+logger = bind_logger(logger_name=__name__)
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -276,6 +279,8 @@ def remove_metadata_fields_paths(parameters: list[OdinParameter]):
     )
     if invalid:
         invalid_names = ["/".join(param.uri) for param in invalid]
-        logging.warning(f"Removing parameters with invalid names: {invalid_names}")
+        logger.warning(
+            "Removing parameters with invalid names", parameters=invalid_names
+        )
 
     return parameters
