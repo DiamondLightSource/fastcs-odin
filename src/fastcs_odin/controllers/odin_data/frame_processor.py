@@ -3,7 +3,7 @@ import re
 from collections.abc import Sequence
 from functools import cached_property, partial
 
-from fastcs.attributes import AttrR
+from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
 from fastcs.logging import bind_logger
 from fastcs.methods import Command, command
@@ -84,13 +84,18 @@ class FrameProcessorController(OdinSubController):
 class FrameProcessorAdapterController(OdinDataAdapterController):
     """Controller for a frame processor adapter"""
 
-    frames_written: AttrR = AttrR(
+    file_path: AttrRW[str]
+    file_prefix: AttrRW[str]
+    acquisition_id: AttrRW[str]
+    process_frames_per_block: AttrRW[int]
+
+    frames_written = AttrR(
         Int(),
         io_ref=StatusSummaryAttributeIORef(
             [re.compile(r"[0-9]+"), "HDF"], "frames_written", partial(sum, start=0)
         ),
     )
-    writing: AttrR = AttrR(
+    writing = AttrR(
         Bool(),
         io_ref=StatusSummaryAttributeIORef(
             [re.compile(r"[0-9]+"), "HDF"], "writing", any

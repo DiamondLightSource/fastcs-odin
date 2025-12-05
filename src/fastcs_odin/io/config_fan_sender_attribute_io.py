@@ -24,7 +24,7 @@ class ConfigFanAttributeIO(AttributeIO[DType_T, ConfigFanAttributeIORef]):
     """AttributeIO for ``ConfigFanAttributeIORef`` Attributes"""
 
     async def send(self, attr: AttrW[DType_T, ConfigFanAttributeIORef], value: Any):
-        logger.info("Fanning out put", value=value)
+        logger.info("Fanning out put", value=value, attribute=attr)
         await asyncio.gather(
             *[
                 attribute.put(value, sync_setpoint=True)
