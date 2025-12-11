@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 
-from fastcs.attributes import AttributeIO, AttributeIORefT, AttrW
+from fastcs.attributes import AttributeIO, AttributeIORefT, AttrRW
 from fastcs.controllers import ControllerVector
 from fastcs.datatypes import DType_T
 
@@ -74,7 +74,7 @@ class OdinDataAdapterController(ControllerVector):
 
     def _create_config_fan_attributes(self):
         """Search for config attributes in sub controllers to create fan out PVs."""
-        parameter_attribute_map: dict[str, tuple[OdinParameter, list[AttrW]]] = {}
+        parameter_attribute_map: dict[str, tuple[OdinParameter, list[AttrRW]]] = {}
         for sub_controller in get_all_sub_controllers(self):
             match sub_controller:
                 case OdinSubController():
@@ -82,7 +82,7 @@ class OdinDataAdapterController(ControllerVector):
                         mode, key = parameter.uri[0], parameter.uri[-1]
                         if mode == "config" and key not in self._unique_config:
                             try:
-                                attr: AttrW = sub_controller.attributes[parameter.name]  # type: ignore
+                                attr: AttrRW = sub_controller.attributes[parameter.name]  # type: ignore
                                 if parameter.name not in parameter_attribute_map:
                                     parameter_attribute_map[parameter.name] = (
                                         parameter,

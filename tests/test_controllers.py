@@ -392,16 +392,28 @@ async def test_status_summary_updater_raise_exception_if_controller_not_found(
 
 @pytest.mark.asyncio
 async def test_config_fan_sender(mocker: MockerFixture):
-    attr1 = mocker.AsyncMock()
-    attr2 = mocker.AsyncMock()
+    attr1 = mocker.MagicMock()
+    attr1.put = (put1_mock := mocker.AsyncMock())
+    attr2 = mocker.MagicMock()
+    attr2.put = (put2_mock := mocker.AsyncMock())
 
     attr = AttrRW(Int(), ConfigFanAttributeIORef([attr1, attr2]))
     io = ConfigFanAttributeIO()
 
     await io.send(attr, 10)
-    attr1.put.assert_called_once_with(10, sync_setpoint=True)
-    attr2.put.assert_called_once_with(10, sync_setpoint=True)
-    assert attr.get() == 10
+    put1_mock.assert_called_once_with(10, sync_setpoint=True)
+    put2_mock.assert_called_once_with(10, sync_setpoint=True)
+
+    attr1.get.return_value = 10
+    attr2.get.return_value = 5
+
+    await io.update(attr)
+    assert attr.get() == 0  # attributes don't match -> default value
+
+    attr2.get.return_value = 10
+
+    await io.update(attr)
+    assert attr.get() == 10  # attributes match -> set value
 
 
 @pytest.mark.asyncio
