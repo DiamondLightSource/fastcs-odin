@@ -10,6 +10,8 @@ def test_create_parameters():
     data = {
         "name": {"value": "foo", "writeable": False, "type": "str"},
         "description": {"value": "foo", "writeable": False, "type": "str"},
+        "foo/bar": {"value": 1, "writeable": False, "type": "int"},
+        "foo": {"baz/": {"value": 1, "writeable": False, "type": "int"}},
     }
     parameters = create_odin_parameters(data)
     assert len(parameters) == 0

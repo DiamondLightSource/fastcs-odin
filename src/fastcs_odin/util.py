@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -17,6 +18,8 @@ from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
 logger = bind_logger(logger_name=__name__)
 
 REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
+
+VALID_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
 def is_metadata_object(v: Any) -> bool:
@@ -130,6 +133,13 @@ def _walk_odin_metadata(
             if node_path[-1] in ("name", "description"):
                 logger.warning(
                     "Ignoring parameter with name/description",
+                    node=node_path,
+                    value=node_value,
+                )
+                continue
+            elif not all(VALID_NAME_RE.match(n) for n in node_path):
+                logger.warning(
+                    "Ignoring parameter with invalid path",
                     node=node_path,
                     value=node_value,
                 )
