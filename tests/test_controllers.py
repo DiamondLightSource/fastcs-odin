@@ -18,7 +18,6 @@ from fastcs_odin.controllers.odin_data.frame_processor import (
 )
 from fastcs_odin.controllers.odin_data.frame_receiver import (
     FrameReceiverAdapterController,
-    FrameReceiverController,
 )
 from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
 from fastcs_odin.http_connection import HTTPConnection
@@ -414,37 +413,6 @@ async def test_config_fan_sender(mocker: MockerFixture):
 
     await io.update(attr)
     assert attr.get() == 10  # attributes match -> set value
-
-
-@pytest.mark.asyncio
-async def test_frame_reciever_controllers():
-    valid_non_decoder_parameter = OdinParameter(
-        uri=["0", "status", "buffers", "total"],
-        metadata=OdinParameterMetadata(value=292, type="int", writeable=True),
-    )
-    valid_decoder_parameter = OdinParameter(
-        uri=["0", "status", "decoder", "packets_dropped"],
-        metadata=OdinParameterMetadata(value=0, type="int", writeable=False),
-    )
-
-    invalid_decoder_parameter = OdinParameter(
-        uri=["0", "status", "decoder", "name"],
-        metadata=OdinParameterMetadata(
-            value="DummyUDPFrameDecoder", type="str", writeable=False
-        ),
-    )
-    parameters = [
-        valid_non_decoder_parameter,
-        valid_decoder_parameter,
-        invalid_decoder_parameter,
-    ]
-    fr_controller = FrameReceiverController(
-        HTTPConnection("", 0), parameters, "api/0.1", []
-    )
-    await fr_controller.initialise()
-    assert isinstance(fr_controller, FrameReceiverController)
-    assert valid_non_decoder_parameter in fr_controller.parameters
-    assert len(fr_controller.parameters) == 2
 
 
 @pytest.mark.asyncio

@@ -22,7 +22,6 @@ from fastcs_odin.util import (
     OdinParameter,
     create_attribute,
     partition,
-    remove_metadata_fields_paths,
 )
 
 logger = bind_logger(logger_name=__name__)
@@ -45,7 +44,6 @@ class FrameProcessorController(OdinSubController):
                     f"Did not find valid plugins in response:\n{plugins_response}"
                 )
 
-        self.parameters = remove_metadata_fields_paths(self.parameters)
         for parameter in self.parameters:
             # Remove duplicate index from uri
             parameter.uri = parameter.uri[1:]

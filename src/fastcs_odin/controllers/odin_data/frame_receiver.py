@@ -2,15 +2,13 @@ from fastcs_odin.controllers.odin_data.odin_data_adapter import (
     OdinDataAdapterController,
 )
 from fastcs_odin.controllers.odin_subcontroller import OdinSubController
-from fastcs_odin.util import create_attribute, remove_metadata_fields_paths
+from fastcs_odin.util import create_attribute
 
 
 class FrameReceiverController(OdinSubController):
     """Controller for a frameReceiver application"""
 
     async def initialise(self):
-        self.parameters = remove_metadata_fields_paths(self.parameters)
-
         for parameter in self.parameters:
             # Remove duplicate index from uri
             parameter.uri = parameter.uri[1:]

@@ -127,6 +127,14 @@ def _walk_odin_metadata(
                 yield from _walk_odin_metadata(sub_node, sub_node_path)
         else:
             # Leaves
+            if node_path[-1] in ("name", "description"):
+                logger.warning(
+                    "Ignoring parameter with name/description",
+                    node=node_path,
+                    value=node_value,
+                )
+                continue
+
             try:
                 if isinstance(node_value, dict) and is_metadata_object(node_value):
                     yield (node_path, OdinParameterMetadata.model_validate(node_value))
@@ -146,10 +154,9 @@ def _walk_odin_metadata(
                 else:
                     # TODO: This won't be needed when all parameters provide metadata
                     yield (node_path, infer_metadata(node_value, node_path))
-            except ValidationError as e:
-                logging.warning(
-                    f"Type not supported for path {node_path} "
-                    f"with value {node_value}:\n{e}"
+            except ValidationError:
+                logger.opt(exception=True).warning(
+                    "Type not supported", path=node_path, value=node_value
                 )
 
 
@@ -272,17 +279,3 @@ def create_attribute(parameter: OdinParameter, api_prefix: str):
         ),
         group=group,
     )
-
-
-def remove_metadata_fields_paths(parameters: list[OdinParameter]):
-    # paths ending in name or description are invalid in Odin's BaseParameterTree
-    parameters, invalid = partition(
-        parameters, lambda p: p.uri[-1] not in ["name", "description"]
-    )
-    if invalid:
-        invalid_names = ["/".join(param.uri) for param in invalid]
-        logger.warning(
-            "Removing parameters with invalid names", parameters=invalid_names
-        )
-
-    return parameters

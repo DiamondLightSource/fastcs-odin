@@ -19,7 +19,6 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
-    remove_metadata_fields_paths,
     unpack_status_arrays,
 )
 
@@ -92,9 +91,6 @@ def test_two_node_fr():
         response = json.loads(f.read())
 
     parameters = create_odin_parameters(response)
-    assert len(parameters) == 82
-
-    parameters = remove_metadata_fields_paths(parameters)
     assert len(parameters) == 80
 
 
