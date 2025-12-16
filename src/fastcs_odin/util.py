@@ -35,6 +35,10 @@ class AdapterType(StrEnum):
 class OdinParameterMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
     value: Any
+    name: str = ""
+    description: str = ""
+    units: str = ""
+    display_precision: int = 0
     writeable: bool
     type: Literal["float", "int", "bool", "str"]
     allowed_values: dict[int, str] | None = None
