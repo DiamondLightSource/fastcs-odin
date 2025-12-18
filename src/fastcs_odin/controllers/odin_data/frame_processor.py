@@ -6,8 +6,7 @@ from functools import cached_property, partial
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
 from fastcs.logging import bind_logger
-from fastcs.methods import Command, command
-from pydantic import ValidationError
+from fastcs.methods import command
 
 from fastcs_odin.controllers.odin_data.odin_data_adapter import (
     OdinDataAdapterController,
@@ -17,12 +16,7 @@ from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIORef,
     _filter_sub_controllers,
 )
-from fastcs_odin.util import (
-    AllowedCommandsResponse,
-    OdinParameter,
-    create_attribute,
-    partition,
-)
+from fastcs_odin.util import OdinParameter, create_attribute, partition
 
 logger = bind_logger(logger_name=__name__)
 
@@ -155,8 +149,6 @@ class FrameProcessorPluginController(OdinSubController):
     """Controller for a plugin in a frameProcessor application."""
 
     async def initialise(self):
-        await self._create_commands()
-        await self._create_dataset_controllers()
         for parameter in self.parameters:
             # Remove plugin name included in controller base path
             parameter.set_path(parameter.path[1:])
@@ -172,18 +164,10 @@ class FrameProcessorPluginController(OdinSubController):
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
             )
 
-    async def _create_commands(self):
         plugin_name = self.path[-1].lower()
-        command_response = await self.connection.get(
-            f"{self._api_prefix}/command/{plugin_name}/allowed"
-        )
+        await self._create_commands([plugin_name])
 
-        try:
-            commands = AllowedCommandsResponse.model_validate(command_response)
-            for command in commands.allowed:
-                self._construct_command(command, plugin_name)
-        except ValidationError:
-            pass
+        await self._create_dataset_controllers()
 
     async def _create_dataset_controllers(self):
         if any("dataset" in p.path for p in self.parameters):
@@ -203,15 +187,6 @@ class FrameProcessorPluginController(OdinSubController):
                 )
                 self.add_sub_controller("DS", dataset_controller)
                 await dataset_controller.initialise()
-
-    def _construct_command(self, command_name, plugin_name):
-        async def submit_command() -> None:
-            logger.info("Executing command", plugin=plugin_name, command=command_name)
-            await self.connection.put(
-                f"{self._api_prefix}/command/{plugin_name}/execute", command_name
-            )
-
-        setattr(self, command_name, Command(submit_command))
 
 
 class FrameProcessorDatasetController(OdinSubController):
