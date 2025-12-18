@@ -10,7 +10,8 @@ from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Float, Int
 from pytest_mock import MockerFixture
 
-from fastcs_odin.controllers.odin_controller import OdinController, OdinSubController
+from fastcs_odin.controllers.odin_adapter_controller import OdinAdapterController
+from fastcs_odin.controllers.odin_controller import OdinController
 from fastcs_odin.controllers.odin_data.frame_processor import (
     FrameProcessorAdapterController,
     FrameProcessorController,
@@ -20,6 +21,7 @@ from fastcs_odin.controllers.odin_data.frame_receiver import (
     FrameReceiverAdapterController,
 )
 from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
+from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import (
     ConfigFanAttributeIO,
@@ -170,11 +172,28 @@ async def test_create_adapter_controller(mocker: MockerFixture):
 
 
 @pytest.mark.parametrize(
-    "mock_get, expected_controller",
+    "mock_get, expected_controller, expected_commands",
     [
         [
-            [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
-            OdinSubController,
+            [
+                {"adapters": ["test_adapter"]},
+                {"": {"value": "test_module"}},
+                {"allowed": ["start", "stop"]},
+            ],
+            OdinAdapterController,
+            ("start", "stop"),
+        ],
+        [
+            [
+                {"adapters": ["test_adapter"]},
+                {"": {"value": "test_module"}},
+                {
+                    "response": "FrameProcessorAdapter GET error: "
+                    "Invalid path: 0/command/test_adapter/allowed"
+                },
+            ],
+            OdinAdapterController,
+            (),
         ],
         [
             [
@@ -182,12 +201,13 @@ async def test_create_adapter_controller(mocker: MockerFixture):
                 {"module": {"value": "FrameProcessorAdapter"}},
             ],
             FrameProcessorAdapterController,
+            (),
         ],
     ],
 )
 @pytest.mark.asyncio
 async def test_controller_initialise(
-    mocker: MockerFixture, mock_get, expected_controller
+    mocker: MockerFixture, mock_get, expected_controller, expected_commands
 ):
     # Status summary attributes won't work without real sub controllers
     mocker.patch(
@@ -206,7 +226,8 @@ async def test_controller_initialise(
 
     await controller.initialise()
 
-    assert isinstance(controller.sub_controllers["TEST_ADAPTER"], expected_controller)
+    assert isinstance(controller.TEST_ADAPTER, expected_controller)  # type: ignore
+    assert all(c in controller.TEST_ADAPTER.command_methods for c in expected_commands)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @pytest.mark.asyncio
