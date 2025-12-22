@@ -51,11 +51,13 @@ class StatusSummaryAttributeIO(AttributeIO[Out, StatusSummaryAttributeIORef]):
         await attr.update(attr.io_ref.accumulator(values))
 
 
-def initialise_summary_attributes(controller):
+def initialise_summary_attributes(controller: BaseController):
     """Initialise summary attributes with dynamically created attributes"""
 
     for attribute in controller.attributes.values():
-        if isinstance(attribute.io_ref, StatusSummaryAttributeIORef):
+        if attribute.has_io_ref() and isinstance(
+            attribute.io_ref, StatusSummaryAttributeIORef
+        ):
             attributes: Sequence[AttrR] = []
             for sub_controller in _filter_sub_controllers(
                 controller, attribute.io_ref.path_filter
