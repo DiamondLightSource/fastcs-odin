@@ -20,19 +20,19 @@ class MetaWriterAdapterController(OdinSubController):
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
             )
 
-    acquisition_id: AttrRW = AttrRW(
+    acquisition_id = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/acquisition_id")
     )
-    directory: AttrRW = AttrRW(
+    directory = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/directory")
     )
-    file_prefix: AttrRW = AttrRW(
+    file_prefix = AttrRW(
         String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/file_prefix")
     )
-    writing: AttrR = AttrR(
+    writing = AttrR(
         Bool(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/writing")
     )
-    written: AttrR = AttrR(
+    written = AttrR(
         Int(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/written")
     )
 
