@@ -42,6 +42,13 @@ class ParameterTreeAttributeIO(AttributeIO[DType_T, ParameterTreeAttributeIORef]
         if parameter not in response:
             raise ValueError(f"{parameter} not found in response:\n{response}")
 
+        self.log_event(
+            "Query for parameter",
+            uri=attr.io_ref.path,
+            response=response,
+            topic=attr,
+        )
+
         value = response.get(parameter)
         await attr.update(attr.datatype.validate(value))
 
