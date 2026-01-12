@@ -2,28 +2,82 @@
 
 <intro>
 
-## Intial Setup
+## Intial Set Up - VM
 
 - Configure python environment
 ```
-❯ source <path-to-venv>
+❯ source /opt/odin/venv/bin/activate
 >>> python
 >>> from fastcs import __version__
 >>> __version__
 ```
 
-- <run phoebus>
-
-## Run Example Odin Deployment
-
-- <run odin deployment>
+- Run Phoebus
 
 ```
-❯ cd <deployment-directory>
+❯ /opt/pheobus/phoebus.sh
+```
+
+- Create project
+
+```
+❯ cd
+❯ mkdir fastcs-odin-example
+❯ cd fastcs-odin-example
+❯ touch example.py
+```
+
+- Connect local vscode to VM (make sure to substitute your user and hostname)
+  - > Remote-SSH: Connect Current Window to Host
+  - Add New SSH Host
+    - `ssh -J user01@odin.observatorysciences.co.uk user01@uservm01`
+    - Open Config and make sure it looks like this
+
+```
+Host uservm01
+  HostName uservm01
+  ProxyJump user01@odin.observatorysciences.co.uk
+  User user01
+```
+
+  - > Remote-SSH: Connect Current Window to Host
+    - uservm01
+  - > File: Open Folder
+    - /home/user01/fastcs-odin-example
+  - Install Python and Pylance extensions
+    - ms-python.python
+    - ms-python.vscode-pylance
+  - > Developer: Reload Window
+  - > Python: Select Interpreter
+    - Enter Interpreter Path
+      - /opt/odin/venv/bin/python
+
+- Run example odin deployment
+
+```
+❯ cd /opt/odin/odin-data-example/deploy
 ❯ zellij -l layout.kdl
 ```
 
 - Check all applications start without errors
+
+## Initial Set Up - Containers
+
+- Run odin-data-example deployment
+
+```
+❯ docker/podman run --rm -it --security-opt label=disable -v /dev/shm:/dev/shm -v /tmp:/tmp --net=host ghcr.io/odin-detector/odin-data-example-runtime:0.2.3
+```
+
+- Create vscode python environment
+  - Clone [fastcs-odin](https://github.com/DiamondLightSource/fastcs-odin)
+  - Open in vscode
+  - > Dev Containers: Reopen in Container
+  - pip install 'fastcs[epics]' pillow aioca
+  - Create example.py
+
+- Run [phoebus container](https://github.com/epics-containers/ec-phoebus)
+  - You will likely need the settings file to configure name servers for both pva and ca.
 
 ## Example Driver
 
@@ -51,10 +105,16 @@ fastcs.run()
 In [1]: controller.foo.get()
 Out[1]: 0
 
-In [2]: run(controller.foo.put(1))
+In [2]: await controller.foo.put(1)
 
 In [3]: controller.foo.get()
 Out[3]: 1
+```
+
+There is also a helper if there are errors about running on the wrong event loop
+
+```python
+run(controller.foo.put(1))
 ```
 
 ### EPICS Channel Access
@@ -99,7 +159,7 @@ from fastcs.transports.epics import EpicsGUIOptions
             gui=EpicsGUIOptions(output_path=Path.cwd() / "opis" / "example.bob", title="Odin Example Detector"),
 ```
 
-- Check `opis/example.bob appears
+- Check `opis/example.bob` appears
 - Phoebus: File > Open > example.bob
 - Try setting some values
 
@@ -177,12 +237,11 @@ Can now run an acquisition and capture frames to a file
 - FP.StartWriting
 
 - Check FP.Writing set
-  - Note path and prefix are cleared for some reason
 
 - DETECTOR.Frames = 10
 - DETECTOR.Start
 
-- Watch FP > Frames Written count up and then FP > Writing unset
+- Watch FP.FramesWritten count up to 10 and then FP.Writing unset
 
 - Again check the interactive shell for the parameters that are being set
 
@@ -220,8 +279,8 @@ from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIORe
 - Run and reload display
 - See new PVs appear
 
-This works, but a good editor will complain about `FP` and `DETECTOR`. These only exist
-at runtime and static type checkers cannot resolve them.
+This works, but note `FP` and `DETECTOR` are unknown attributes. These only exist
+at runtime, so static type checkers cannot resolve them and there is no autocompletion.
 
 ### Type Hints
 
@@ -416,7 +475,7 @@ from fastcs.methods import scan
         await self.live_view_image.update(numpy_array[:, :, 0])
 ```
 
-The image dimensions and dtype could be queried from `LIVE.Shape` and `Live.FrameDtype`
+The image dimensions and dtype could be queried from `LIVE.Shape` and `LIVE.FrameDtype`
 at runtime to create `live_view_image` dynamically.
 
 The EPICS CA transport does not support images, so this will give an error
@@ -466,8 +525,6 @@ In [1]: controller.FP[0].HDF.file_path.enable_tracing()
 
 This shows trace events from the connection, through the attribute and into the
 transport.
-
-Path seems to get cleared in the adapter
 
 ```
 [2025-12-23 12:07:31.510+0000 I] Executing command   [fastcs_odin.controllers.odin_subcontroller] controller=['FP', '0', 'HDF'], command=start_writing, path=['hdf']
