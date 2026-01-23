@@ -34,13 +34,11 @@ class ParameterTreeAttributeIO(AttributeIO[DType_T, ParameterTreeAttributeIORef]
         self._connection = connection
 
     async def update(self, attr: AttrR[DType_T, ParameterTreeAttributeIORef]) -> None:
-        # TODO: We should use pydantic validation here
-        response = await self._connection.get(attr.io_ref.path)
-
-        # TODO: This would be nicer if the key was 'value' so we could match
-        parameter = attr.io_ref.path.split("/")[-1]
-        if parameter not in response:
-            raise ValueError(f"{parameter} not found in response:\n{response}")
+        try:
+            response = await self._connection.get(attr.io_ref.path)
+        except Exception:
+            logger.error("Failed to get parameter", path=attr.io_ref.path)
+            raise
 
         self.log_event(
             "Query for parameter",
@@ -49,8 +47,21 @@ class ParameterTreeAttributeIO(AttributeIO[DType_T, ParameterTreeAttributeIORef]
             topic=attr,
         )
 
-        value = response.get(parameter)
-        await attr.update(attr.datatype.validate(value))
+        match response:
+            case {"value": value}:
+                pass
+            case _:
+                parameter_name = attr.io_ref.path.split("/")[-1]
+                for k, v in response.items():
+                    if k == parameter_name:  # e.g. {"api": 0.1}
+                        value = v
+                        break
+                else:
+                    raise ValueError(
+                        f"Failed to parse response for {attr.io_ref.path}:\n{response}"
+                    )
+
+        await attr.update(value)
 
     async def send(
         self, attr: AttrW[DType_T, ParameterTreeAttributeIORef], value: DType_T
