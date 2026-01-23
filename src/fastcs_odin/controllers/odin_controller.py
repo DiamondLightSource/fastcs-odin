@@ -70,7 +70,9 @@ class OdinController(Controller):
             adapter_controller = self._create_adapter_controller(
                 self.connection, create_odin_parameters(response), adapter, module
             )
-            self.add_sub_controller(adapter.upper(), adapter_controller)
+            if len(adapter) < 3:
+                adapter = adapter.upper()
+            self.add_sub_controller(adapter, adapter_controller)
             await adapter_controller.initialise()
 
         initialise_summary_attributes(self)
