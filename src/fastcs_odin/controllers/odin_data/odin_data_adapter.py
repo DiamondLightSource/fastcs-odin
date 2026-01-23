@@ -27,21 +27,21 @@ class OdinDataAdapterController(ControllerVector):
         self,
         connection: HTTPConnection,
         parameters: list[OdinParameter],
-        api_prefix: str,
+        adapter: str,
         ios: Sequence[AttributeIO[DType_T, AttributeIORefT]],
     ):
         """
         Args:
             connection: HTTP connection to communicate with odin server
             parameters: The parameters in the adapter
-            api_prefix: The base URL of this adapter in the odin server API
+            adapter: The base URL of this adapter in the odin server API
 
         """
         super().__init__(ios=ios, children={})
 
         self.connection = connection
         self.parameters = parameters
-        self._api_prefix = api_prefix
+        self._adapter = adapter
         self._ios = ios
 
     async def initialise(self):
@@ -58,7 +58,7 @@ class OdinDataAdapterController(ControllerVector):
             adapter_controller = self._subcontroller_cls(
                 self.connection,
                 fp_parameters,
-                f"{self._api_prefix}/{idx}",
+                f"{self._adapter}/{idx}",
                 self._ios,
             )
             self[int(idx)] = adapter_controller
@@ -67,7 +67,7 @@ class OdinDataAdapterController(ControllerVector):
         for parameter in self.parameters:
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )
         self._create_config_fan_attributes()
         initialise_summary_attributes(self)

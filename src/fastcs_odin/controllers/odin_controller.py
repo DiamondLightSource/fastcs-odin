@@ -1,6 +1,7 @@
 from fastcs.attributes import AttributeIO
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controllers import BaseController, Controller
+from fastcs.util import snake_to_pascal
 
 from fastcs_odin.controllers.odin_data.frame_processor import (
     FrameProcessorAdapterController,
@@ -17,18 +18,11 @@ from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIO,
     initialise_summary_attributes,
 )
-from fastcs_odin.util import (
-    REQUEST_METADATA_HEADER,
-    AdapterType,
-    OdinParameter,
-    create_odin_parameters,
-)
+from fastcs_odin.util import AdapterType, OdinParameter, create_odin_parameters
 
 
 class OdinController(Controller):
     """A root ``Controller`` for an odin control server."""
-
-    API_PREFIX = "api/0.1"
 
     def __init__(self, settings: IPConnectionSettings) -> None:
         self.connection = HTTPConnection(settings.ip, settings.port)
@@ -43,7 +37,7 @@ class OdinController(Controller):
     async def initialise(self) -> None:
         self.connection.open()
 
-        adapters_response = await self.connection.get(f"{self.API_PREFIX}/adapters")
+        adapters_response = await self.connection.get_adapters()
         match adapters_response:
             case {"adapters": [*adapter_list]}:
                 adapters = tuple(a for a in adapter_list if isinstance(a, str))
@@ -57,9 +51,7 @@ class OdinController(Controller):
         for adapter in adapters:
             # Get full parameter tree and split into parameters at the root and under
             # an index where there are N identical trees for each underlying process
-            response = await self.connection.get(
-                f"{self.API_PREFIX}/{adapter}", headers=REQUEST_METADATA_HEADER
-            )
+            response = await self.connection.get(adapter, with_metadata=True)
             # Extract the module name of the adapter
             match response:
                 case {"module": {"value": str() as module}}:
@@ -70,7 +62,9 @@ class OdinController(Controller):
             adapter_controller = self._create_adapter_controller(
                 self.connection, create_odin_parameters(response), adapter, module
             )
-            self.add_sub_controller(adapter.upper(), adapter_controller)
+            self.add_sub_controller(
+                snake_to_pascal(adapter).upper(), adapter_controller
+            )
             await adapter_controller.initialise()
 
         initialise_summary_attributes(self)
@@ -87,17 +81,29 @@ class OdinController(Controller):
         match module:
             case AdapterType.FRAME_PROCESSOR:
                 return FrameProcessorAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
+                    connection, parameters, adapter, self._ios
                 )
             case AdapterType.FRAME_RECEIVER:
                 return FrameReceiverAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
+                    connection, parameters, adapter, self._ios
                 )
             case AdapterType.META_WRITER:
                 return MetaWriterAdapterController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
+                    connection, parameters, adapter, self._ios
                 )
             case _:
-                return OdinSubController(
-                    connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
-                )
+                return OdinSubController(connection, parameters, adapter, self._ios)
+
+    def enable_request_timers(self) -> None:
+        """Enable request timers on all parameter tree caches."""
+        for io in self._ios:
+            match io:
+                case ParameterTreeAttributeIO() as ptio:
+                    ptio.enable_request_timers()
+
+    def disable_request_timers(self) -> None:
+        """Disable request timers on all parameter tree caches."""
+        for io in self._ios:
+            match io:
+                case ParameterTreeAttributeIO() as ptio:
+                    ptio.disable_request_timers()

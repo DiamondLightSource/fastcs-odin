@@ -8,10 +8,14 @@ JsonType = JsonElementary | list["JsonType"] | Mapping[str, "JsonType"]
 
 
 class HTTPConnection:
-    def __init__(self, ip: str, port: int):
+    DEFAULT_API_PREFIX = "api/0.1"
+    REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
+
+    def __init__(self, ip: str, port: int, api_prefix: str = DEFAULT_API_PREFIX):
         self._session: ClientSession | None = None
         self._ip = ip
         self._port = port
+        self._api_prefix = api_prefix
 
     def full_url(self, uri: str) -> str:
         """Expand IP address, port and URI into full URL.
@@ -20,7 +24,7 @@ class HTTPConnection:
             uri: Identifier for a resource for the current connection
 
         """
-        return f"http://{self._ip}:{self._port}/{uri}"
+        return f"http://{self._ip}:{self._port}/{self._api_prefix}/{uri}"
 
     def open(self):
         """Create the underlying aiohttp ClientSession.
@@ -44,7 +48,15 @@ class HTTPConnection:
 
         raise ConnectionRefusedError("Session is not open")
 
-    async def get(self, uri: str, headers: dict | None = None) -> dict[str, JsonType]:
+    async def get_adapters(self) -> dict[str, JsonType]:
+        """Get a list of adapters from the server.
+
+        Returns: Response payload as JSON
+
+        """
+        return await self.get("adapters")
+
+    async def get(self, uri: str, with_metadata: bool = False) -> dict[str, JsonType]:
         """Perform HTTP GET request and return response content as JSON.
 
         Args:
@@ -54,6 +66,9 @@ class HTTPConnection:
 
         """
         session = self.get_session()
+
+        headers = self.REQUEST_METADATA_HEADER if with_metadata else None
+
         async with session.get(self.full_url(uri), headers=headers) as response:
             match await response.json():
                 case dict() as d:

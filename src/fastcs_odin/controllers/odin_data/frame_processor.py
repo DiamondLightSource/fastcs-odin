@@ -33,7 +33,7 @@ class FrameProcessorController(OdinSubController):
 
     async def initialise(self):
         plugins_response = await self.connection.get(
-            f"{self._api_prefix}/status/plugins/names"
+            f"{self._adapter}/status/plugins/names"
         )
         match plugins_response:
             case {"names": [*plugin_list]}:
@@ -57,7 +57,7 @@ class FrameProcessorController(OdinSubController):
         for parameter in self.parameters:
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )
 
     async def _create_plugin_sub_controllers(self, plugins: Sequence[str]):
@@ -74,7 +74,7 @@ class FrameProcessorController(OdinSubController):
             plugin_controller = FrameProcessorPluginController(
                 self.connection,
                 plugin_parameters,
-                f"{self._api_prefix}",
+                f"{self._adapter}",
                 self._ios,
             )
             self.add_sub_controller(plugin.upper(), plugin_controller)
@@ -171,13 +171,13 @@ class FrameProcessorPluginController(OdinSubController):
                 parameter.set_path(["current_acquisition_id"])
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )
 
     async def _create_commands(self):
         plugin_name = self.path[-1].lower()
         command_response = await self.connection.get(
-            f"{self._api_prefix}/command/{plugin_name}/allowed"
+            f"{self._adapter}/command/{plugin_name}/allowed"
         )
 
         try:
@@ -200,7 +200,7 @@ class FrameProcessorPluginController(OdinSubController):
                 dataset_controller = FrameProcessorDatasetController(
                     self.connection,
                     dataset_parameters,
-                    f"{self._api_prefix}",
+                    f"{self._adapter}",
                     self._ios,
                 )
                 self.add_sub_controller("DS", dataset_controller)
@@ -210,7 +210,7 @@ class FrameProcessorPluginController(OdinSubController):
         async def submit_command() -> None:
             logger.info("Executing command", plugin=plugin_name, command=command_name)
             await self.connection.put(
-                f"{self._api_prefix}/command/{plugin_name}/execute", command_name
+                f"{self._adapter}/command/{plugin_name}/execute", command_name
             )
 
         setattr(self, command_name, Command(submit_command))
@@ -224,5 +224,5 @@ class FrameProcessorDatasetController(OdinSubController):
             parameter.set_path(parameter.uri[3:])
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )

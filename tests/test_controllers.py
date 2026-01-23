@@ -27,10 +27,10 @@ from fastcs_odin.io.config_fan_sender_attribute_io import (
     ConfigFanAttributeIORef,
 )
 from fastcs_odin.io.parameter_attribute_io import (
-    AdapterResponseError,
     ParameterTreeAttributeIO,
     ParameterTreeAttributeIORef,
 )
+from fastcs_odin.io.parameter_cache import AdapterResponseError
 from fastcs_odin.io.status_summary_attribute_io import (
     StatusSummaryAttributeIO,
     StatusSummaryAttributeIORef,
@@ -66,7 +66,7 @@ def test_create_attributes():
     for parameter in controller.parameters:
         controller.add_attribute(
             parameter.name,
-            create_attribute(parameter=parameter, api_prefix=controller._api_prefix),
+            create_attribute(parameter=parameter, adapter=controller._adapter),
         )
 
     match controller.attributes:
@@ -174,14 +174,11 @@ async def test_create_adapter_controller(mocker: MockerFixture):
     "mock_get, expected_controller",
     [
         [
-            [{"adapters": ["test_adapter"]}, {"": {"value": "test_module"}}],
+            [{"": {"value": "test_module"}}],
             OdinSubController,
         ],
         [
-            [
-                {"adapters": ["test_adapter"]},
-                {"module": {"value": "FrameProcessorAdapter"}},
-            ],
+            [{"module": {"value": "FrameProcessorAdapter"}}],
             FrameProcessorAdapterController,
         ],
     ],
@@ -203,11 +200,12 @@ async def test_controller_initialise(
     controller.connection = mocker.AsyncMock()
     controller.connection.open = mocker.MagicMock()
 
+    controller.connection.get_adapters.side_effect = [{"adapters": ["test_adapter"]}]
     controller.connection.get.side_effect = mock_get
 
     await controller.initialise()
 
-    assert isinstance(controller.sub_controllers["TEST_ADAPTER"], expected_controller)
+    assert isinstance(controller.sub_controllers["TESTADAPTER"], expected_controller)
 
 
 @pytest.mark.asyncio
@@ -284,13 +282,13 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
 @pytest.mark.asyncio
 async def test_param_tree_io_update(mocker: MockerFixture):
     connection = mocker.AsyncMock()
-    connection.get.return_value = {"frames_written": 20}
+    connection.get.return_value = {"hdf": {"frames_written": 20}}
     io = ParameterTreeAttributeIO(connection)
-    attr = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames_written"))
+    attr = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("fp", "hdf/frames_written"))
 
     await io.update(attr)
 
-    connection.get.assert_called_once_with("hdf/frames_written")
+    connection.get.assert_called_once_with("fp")
     assert attr.get() == 20
 
     # Check validate called to cast value
@@ -304,12 +302,15 @@ async def test_param_tree_io_update(mocker: MockerFixture):
 @pytest.mark.asyncio
 async def test_param_tree_io_send(mocker: MockerFixture):
     connection = mocker.AsyncMock()
+    connection.get.return_value = {"hdf": {"frames": 10}}
+
     io = ParameterTreeAttributeIO(connection)
-    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames"))
+    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("fp", "hdf/frames"))
+    await io.update(attr)
 
     await io.send(attr, 10)
 
-    connection.put.assert_called_once_with("hdf/frames", 10)
+    connection.put.assert_called_once_with("fp/hdf/frames", 10)
 
 
 @pytest.mark.asyncio
@@ -317,12 +318,13 @@ async def test_param_tree_handler_send_exception(mocker: MockerFixture):
     connection = mocker.AsyncMock()
     connection.put.return_value = {"error": "No, you can't do that"}
     io = ParameterTreeAttributeIO(connection)
-    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames"))
+    attr = AttrRW(Int(), io_ref=ParameterTreeAttributeIORef("fp", "hdf/frames"))
+    await io.update(attr)
 
     with pytest.raises(AdapterResponseError, match="No, you can't do that"):
         await io.send(attr, -1)
 
-    connection.put.assert_called_once_with("hdf/frames", -1)
+    connection.put.assert_called_once_with("fp/hdf/frames", -1)
 
 
 @pytest.mark.asyncio

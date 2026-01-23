@@ -315,7 +315,7 @@ async def test_mw_initialise(mocker: MockerFixture):
     assert len(meta_writer.attributes) == 19
 
     await meta_writer.stop()
-    mock_connection.put.assert_called_once_with("api/0.1/mw/config/stop", True)
+    mock_connection.put.assert_called_once_with("mw/config/stop", True)
 
     # Check `0/status/` removed
     assert meta_writer.timestamp.path == []  # type: ignore

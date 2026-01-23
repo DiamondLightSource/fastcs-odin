@@ -17,25 +17,21 @@ class MetaWriterAdapterController(OdinSubController):
                     parameter.set_path(parameter.path[2:])
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )
 
     acquisition_id = AttrRW(
-        String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/acquisition_id")
+        String(), io_ref=ParameterTreeAttributeIORef("mw", "config/acquisition_id")
     )
     directory = AttrRW(
-        String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/directory")
+        String(), io_ref=ParameterTreeAttributeIORef("mw", "config/directory")
     )
     file_prefix = AttrRW(
-        String(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/config/file_prefix")
+        String(), io_ref=ParameterTreeAttributeIORef("mw", "config/file_prefix")
     )
-    writing = AttrR(
-        Bool(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/writing")
-    )
-    written = AttrR(
-        Int(), io_ref=ParameterTreeAttributeIORef("api/0.1/mw/status/written")
-    )
+    writing = AttrR(Bool(), io_ref=ParameterTreeAttributeIORef("mw", "status/writing"))
+    written = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("mw", "status/written"))
 
     @command()
     async def stop(self):
-        await self.connection.put("api/0.1/mw/config/stop", True)
+        await self.connection.put("mw/config/stop", True)

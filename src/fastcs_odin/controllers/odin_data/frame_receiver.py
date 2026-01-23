@@ -23,7 +23,7 @@ class FrameReceiverController(OdinSubController):
 
             self.add_attribute(
                 parameter.name,
-                create_attribute(parameter=parameter, api_prefix=self._api_prefix),
+                create_attribute(parameter=parameter, adapter=self._adapter),
             )
 
 

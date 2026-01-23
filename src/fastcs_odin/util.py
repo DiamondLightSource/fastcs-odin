@@ -35,6 +35,10 @@ class OdinParameterMetadata(BaseModel):
     writeable: bool
     type: Literal["float", "int", "bool", "str"]
     allowed_values: dict[int, str] | None = None
+    name: str | None = None
+    description: str | None = None
+    units: str | None = None
+    display_precision: int | None = None
 
     @property
     def fastcs_datatype(self) -> DataType:
@@ -253,7 +257,7 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
     return parameters
 
 
-def create_attribute(parameter: OdinParameter, api_prefix: str):
+def create_attribute(parameter: OdinParameter, adapter: str):
     """Create ``Attribute`` from ``OdinParameter``."""
     if parameter.metadata.writeable:
         attr_class = AttrRW
@@ -268,7 +272,8 @@ def create_attribute(parameter: OdinParameter, api_prefix: str):
     return attr_class(
         parameter.metadata.fastcs_datatype,
         io_ref=ParameterTreeAttributeIORef(
-            "/".join([api_prefix] + parameter.uri),
+            adapter,
+            "/".join(parameter.uri),
         ),
         group=group,
     )

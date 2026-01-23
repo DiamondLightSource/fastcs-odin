@@ -5,11 +5,9 @@ from fastcs.datatypes import DType_T
 from fastcs.logging import bind_logger
 
 from fastcs_odin.http_connection import HTTPConnection, ValueType
+from fastcs_odin.io.parameter_cache import ParameterTreeCache
 
 logger = bind_logger(logger_name=__name__)
-
-
-class AdapterResponseError(Exception): ...
 
 
 @dataclass
@@ -20,6 +18,7 @@ class ParameterTreeAttributeIORef(AttributeIORef):
         path: The path to the parameter in the tree
     """
 
+    adapter: str
     path: str
     _: KW_ONLY
     update_period: float | None = 0.2
@@ -32,33 +31,48 @@ class ParameterTreeAttributeIO(AttributeIO[DType_T, ParameterTreeAttributeIORef]
         super().__init__()
 
         self._connection = connection
+        self._cache: dict[str, ParameterTreeCache] = {}
 
     async def update(self, attr: AttrR[DType_T, ParameterTreeAttributeIORef]) -> None:
         # TODO: We should use pydantic validation here
-        response = await self._connection.get(attr.io_ref.path)
 
-        # TODO: This would be nicer if the key was 'value' so we could match
-        parameter = attr.io_ref.path.split("/")[-1]
-        if parameter not in response:
-            raise ValueError(f"{parameter} not found in response:\n{response}")
+        if attr.io_ref.adapter not in self._cache:
+            logger.debug(
+                "Creating ParameterTree cache for {adapter}",
+                adapter=attr.io_ref.adapter,
+            )
+            self._cache[attr.io_ref.adapter] = ParameterTreeCache(
+                path_prefix=attr.io_ref.adapter, connection=self._connection
+            )
+
+        value = await self._cache[attr.io_ref.adapter].get(
+            attr.io_ref.path, attr.io_ref.update_period
+        )
 
         self.log_event(
             "Query for parameter",
+            adapter=attr.io_ref.adapter,
             uri=attr.io_ref.path,
-            response=response,
+            value=value,
             topic=attr,
         )
 
-        value = response.get(parameter)
         await attr.update(attr.datatype.validate(value))
 
     async def send(
         self, attr: AttrW[DType_T, ParameterTreeAttributeIORef], value: DType_T
     ) -> None:
         assert isinstance(value, ValueType)
+        assert attr.io_ref.adapter in self._cache
         logger.info("Sending parameter", path=attr.io_ref.path, value=value)
-        response = await self._connection.put(attr.io_ref.path, value)
+        await self._cache[attr.io_ref.adapter].put(attr.io_ref.path, value)
 
-        match response:
-            case {"error": error}:
-                raise AdapterResponseError(error)
+    def enable_request_timers(self):
+        """Enable request timers on all parameter tree caches."""
+        for cache in self._cache.values():
+            cache.request_timer.enable_tracing()
+
+    def disable_request_timers(self):
+        """Disable request timers on all caches."""
+        for cache in self._cache.values():
+            cache.request_timer.disable_tracing()
