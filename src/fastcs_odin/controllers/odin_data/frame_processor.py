@@ -161,6 +161,10 @@ class FrameProcessorPluginController(OdinSubController):
                 parameter.set_path(["current_file_path"])
             elif parameter.uri == ["status", "hdf", "acquisition_id"]:
                 parameter.set_path(["current_acquisition_id"])
+            elif parameter.uri[:2] == ["status", "blosc"]:
+                # TODO: https://github.com/odin-detector/odin-data/issues/426
+                continue
+
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),
