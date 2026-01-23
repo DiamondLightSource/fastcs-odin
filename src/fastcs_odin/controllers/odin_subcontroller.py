@@ -56,9 +56,13 @@ class OdinSubController(Controller):
             path: The sub path to the command under ``self._api_prefix``
 
         """
-        response = await self.connection.get(
-            f"{self._api_prefix}/command{'/' + '/'.join(path) if path else ''}/allowed"
-        )
+        command_path = "/" + "/".join(path) if path else ""
+        allowed_commands = f"{self._api_prefix}/command{command_path}/allowed"
+        try:
+            response = await self.connection.get(allowed_commands)
+        except Exception:
+            logger.warning("Commands not supported at path", path=self.path)
+            return
 
         try:
             commands = AllowedCommandsResponse.model_validate(response)
@@ -66,6 +70,7 @@ class OdinSubController(Controller):
             logger.warning(
                 "Failed to parse command response",
                 path=self.path,
+                uri=allowed_commands,
                 response=response,
             )
             return

@@ -1,10 +1,14 @@
 from collections.abc import Mapping
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientResponse, ClientSession, ContentTypeError
+from fastcs.logging import bind_logger
 
 ValueType = bool | int | float | str
 JsonElementary = str | int | float | bool | None
 JsonType = JsonElementary | list["JsonType"] | Mapping[str, "JsonType"]
+
+
+logger = bind_logger(__name__)
 
 
 class HTTPConnection:
@@ -52,14 +56,19 @@ class HTTPConnection:
 
         Returns: Response payload as JSON
 
+        Raises:
+            ClientResponseError: if response is not successful
+            ValueError: if response is not json
+
         """
         session = self.get_session()
         async with session.get(self.full_url(uri), headers=headers) as response:
-            match await response.json():
-                case dict() as d:
-                    return d
-                case _:
-                    raise ValueError(f"Got unexpected response:\n{response}")
+            response.raise_for_status()
+
+            try:
+                return await response.json()
+            except ContentTypeError as e:
+                raise ValueError("Failed to parse response as json") from e
 
     async def get_bytes(self, uri: str) -> tuple[ClientResponse, bytes]:
         """Perform HTTP GET request and return response content as bytes.
@@ -92,7 +101,13 @@ class HTTPConnection:
             json=value,
             headers={"Content-Type": "application/json"},
         ) as response:
-            return await response.json()
+            response.raise_for_status()
+
+            try:
+                return await response.json()
+            except ContentTypeError:
+                logger.warning("Put response was not json", uri=uri, response=response)
+                return {}
 
     async def close(self):
         """Close the underlying aiohttp ClientSession."""
