@@ -11,7 +11,10 @@
             "module": "fastcs_odin",
             "justMyCode": false,
             "console": "integratedTerminal",
-            "args": ["ioc", "ODIN"]
+            "args": [
+                "ioc",
+                "ODIN"
+            ]
         },
         {
             "name": "Odin Asyncio",
@@ -20,7 +23,9 @@
             "module": "fastcs_odin",
             "justMyCode": false,
             "console": "integratedTerminal",
-            "args": ["asyncio"]
+            "args": [
+                "asyncio"
+            ]
         },
         {
             "name": "Odin Control",
@@ -29,7 +34,12 @@
             "module": "odin.main",
             "justMyCode": false,
             "console": "integratedTerminal",
-            "args": ["--config", "${workspaceFolder}/dev/local/odin_server.cfg", "--logging", "debug"]
+            "args": [
+                "--config",
+                "${workspaceFolder}/dev/local/odin_server.cfg",
+                "--logging",
+                "debug"
+            ]
         },
         {
             "name": "Dump Server Response",
@@ -38,7 +48,9 @@
             "module": "tests.dump_server_response",
             "justMyCode": false,
             "console": "integratedTerminal",
-            "args": ["${input:odin-server}"]
+            "args": [
+                "${input:odin-server}"
+            ]
         },
         {
             "name": "Debug Unit Test",
@@ -50,10 +62,6 @@
                 "debug-test"
             ],
             "console": "integratedTerminal",
-            "env": {
-                // Enable break on exception when debugging tests (see: tests/conftest.py)
-                "PYTEST_RAISE": "1",
-            },
         },
     ],
     "inputs": [
