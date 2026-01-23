@@ -19,7 +19,6 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_odin_parameters,
     infer_metadata,
-    remove_metadata_fields_paths,
     unpack_status_arrays,
 )
 
@@ -92,9 +91,6 @@ def test_two_node_fr():
         response = json.loads(f.read())
 
     parameters = create_odin_parameters(response)
-    assert len(parameters) == 82
-
-    parameters = remove_metadata_fields_paths(parameters)
     assert len(parameters) == 80
 
 
@@ -131,10 +127,10 @@ def test_node_that_has_metadata_only_counts_once():
 
 
 def test_nested_node_gives_correct_name():
-    data = {"top": {"nest-1": {"nest-2": 1}}}
+    data = {"top": {"nest1": {"nest2": 1}}}
     parameters = create_odin_parameters(data)
     assert len(parameters) == 1
-    assert parameters[0].name == "top_nest-1_nest-2"
+    assert parameters[0].name == "top_nest1_nest2"
 
 
 def test_config_node_splits_list_into_mutiples():

@@ -2,6 +2,7 @@ from fastcs.attributes import AttributeIO
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.controllers import BaseController, Controller
 
+from fastcs_odin.controllers.odin_adapter_controller import OdinAdapterController
 from fastcs_odin.controllers.odin_data.frame_processor import (
     FrameProcessorAdapterController,
 )
@@ -9,7 +10,6 @@ from fastcs_odin.controllers.odin_data.frame_receiver import (
     FrameReceiverAdapterController,
 )
 from fastcs_odin.controllers.odin_data.meta_writer import MetaWriterAdapterController
-from fastcs_odin.controllers.odin_subcontroller import OdinSubController
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.io.config_fan_sender_attribute_io import ConfigFanAttributeIO
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIO
@@ -98,6 +98,6 @@ class OdinController(Controller):
                     connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
             case _:
-                return OdinSubController(
+                return OdinAdapterController(
                     connection, parameters, f"{self.API_PREFIX}/{adapter}", self._ios
                 )
