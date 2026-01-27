@@ -56,7 +56,7 @@ def ioc(
     options = EpicsCATransport(
         epicsca=EpicsIOCOptions(pv_prefix=pv_prefix),
         gui=EpicsGUIOptions(
-            output_path=Path.cwd() / "odin.bob", title=f"Odin - {pv_prefix}"
+            output_path=Path.cwd() / "opi" / "odin.bob", title=f"Odin - {pv_prefix}"
         ),
     )
     launcher = FastCS(controller, [options])
