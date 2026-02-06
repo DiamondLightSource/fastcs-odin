@@ -274,7 +274,9 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
     return parameters
 
 
-def create_attribute(parameter: OdinParameter, api_prefix: str, group: str = ""):
+def create_attribute(
+    parameter: OdinParameter, api_prefix: str, group: str | None = None
+):
     """Create ``Attribute`` from ``OdinParameter``."""
     if parameter.metadata.writeable:
         attr_class = AttrRW
