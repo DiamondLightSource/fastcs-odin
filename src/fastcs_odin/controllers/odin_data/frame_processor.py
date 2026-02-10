@@ -80,6 +80,7 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     file_prefix: AttrRW[str]
     acquisition_id: AttrRW[str]
     process_frames_per_block: AttrRW[int]
+    process_blocks_per_file: AttrRW[int]
 
     frames_written = AttrR(
         Int(),
