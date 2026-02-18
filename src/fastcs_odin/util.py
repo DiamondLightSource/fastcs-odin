@@ -286,8 +286,6 @@ def create_attribute(
     if group is None:
         if len(parameter.path) >= 2:
             group = snake_to_pascal(f"{parameter.path[0]}")
-        else:
-            group = None
 
     return attr_class(
         parameter.metadata.fastcs_datatype,
