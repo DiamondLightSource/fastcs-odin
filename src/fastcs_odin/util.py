@@ -283,7 +283,7 @@ def create_attribute(
     else:
         attr_class = AttrR
 
-    if not group:
+    if group is None:
         if len(parameter.path) >= 2:
             group = snake_to_pascal(f"{parameter.path[0]}")
         else:
