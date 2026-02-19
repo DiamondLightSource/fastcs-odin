@@ -82,8 +82,6 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     process_frames_per_block: AttrRW[int]
     process_blocks_per_file: AttrRW[int]
     frames: AttrR[int]
-    data_dims_0: AttrR[int]  # y
-    data_dims_1: AttrR[int]  # x
 
     frames_written = AttrR(
         Int(),
