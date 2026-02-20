@@ -27,7 +27,7 @@ def test_create_parameters():
 
 
 @pytest.mark.parametrize(
-    "metadata, uri, attr_type, group",
+    "metadata, uri, attr, group",
     [
         (
             OdinParameterMetadata(value=0, type="int", writeable=False),
@@ -55,9 +55,9 @@ def test_create_parameters():
         ),
     ],
 )
-def test_create_parameters_groups(metadata, uri, attr_type, group):
+def test_create_parameters_groups(metadata, uri, attr, group):
     param = OdinParameter(uri, metadata)
 
-    attr = create_attribute(param, "test", group=group)
+    var = create_attribute(param, "test", group=group)
 
-    assert attr.group == attr_type.group
+    assert var.group == attr.group
