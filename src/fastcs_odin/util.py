@@ -274,17 +274,18 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
     return parameters
 
 
-def create_attribute(parameter: OdinParameter, api_prefix: str):
+def create_attribute(
+    parameter: OdinParameter, api_prefix: str, group: str | None = None
+):
     """Create ``Attribute`` from ``OdinParameter``."""
     if parameter.metadata.writeable:
         attr_class = AttrRW
     else:
         attr_class = AttrR
 
-    if len(parameter.path) >= 2:
-        group = snake_to_pascal(f"{parameter.path[0]}")
-    else:
-        group = None
+    if group is None:
+        if len(parameter.path) >= 2:
+            group = snake_to_pascal(f"{parameter.path[0]}")
 
     return attr_class(
         parameter.metadata.fastcs_datatype,
