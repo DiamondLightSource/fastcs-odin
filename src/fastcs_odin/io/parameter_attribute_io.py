@@ -2,11 +2,9 @@ from dataclasses import KW_ONLY, dataclass
 
 from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrW
 from fastcs.datatypes import DType_T
-from fastcs.logging import bind_logger
+from fastcs.logging import logger
 
 from fastcs_odin.http_connection import HTTPConnection, ValueType
-
-logger = bind_logger(logger_name=__name__)
 
 
 class AdapterResponseError(Exception): ...

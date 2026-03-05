@@ -3,14 +3,12 @@ from collections.abc import Sequence
 from fastcs.attributes import AttributeIO, AttributeIORefT
 from fastcs.controllers import Controller
 from fastcs.datatypes import DType_T
-from fastcs.logging import bind_logger
+from fastcs.logging import logger
 from fastcs.methods import Command
 from pydantic import ValidationError
 
 from fastcs_odin.http_connection import HTTPConnection
 from fastcs_odin.util import AllowedCommandsResponse, OdinParameter, create_attribute
-
-logger = bind_logger(logger_name=__name__)
 
 
 class OdinSubController(Controller):

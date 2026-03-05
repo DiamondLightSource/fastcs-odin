@@ -226,8 +226,8 @@ async def test_controller_initialise(
 
     await controller.initialise()
 
-    assert isinstance(controller.TEST_ADAPTER, expected_controller)  # type: ignore
-    assert all(c in controller.TEST_ADAPTER.command_methods for c in expected_commands)  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(controller.test_adapter, expected_controller)  # type: ignore
+    assert all(c in controller.test_adapter.command_methods for c in expected_commands)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @pytest.mark.asyncio

@@ -5,7 +5,6 @@ from functools import cached_property, partial
 
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
-from fastcs.logging import bind_logger
 from fastcs.methods import command
 
 from fastcs_odin.controllers.odin_data.odin_data_adapter import (
@@ -17,8 +16,6 @@ from fastcs_odin.io.status_summary_attribute_io import (
     _filter_sub_controllers,
 )
 from fastcs_odin.util import OdinParameter, create_attribute, partition
-
-logger = bind_logger(logger_name=__name__)
 
 
 class FrameProcessorController(OdinSubController):

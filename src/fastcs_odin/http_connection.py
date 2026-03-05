@@ -1,14 +1,11 @@
 from collections.abc import Mapping
 
 from aiohttp import ClientResponse, ClientSession, ContentTypeError
-from fastcs.logging import bind_logger
+from fastcs.logging import logger
 
 ValueType = bool | int | float | str
 JsonElementary = str | int | float | bool | None
 JsonType = JsonElementary | list["JsonType"] | Mapping[str, "JsonType"]
-
-
-logger = bind_logger(__name__)
 
 
 class HTTPConnection:
