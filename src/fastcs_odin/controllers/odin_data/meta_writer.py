@@ -15,6 +15,10 @@ class MetaWriterAdapterController(OdinSubController):
             match parameter.uri:
                 case ["0", "status" | "config", *_]:
                     parameter.set_path(parameter.path[2:])
+
+            if "acquisitions" in parameter.uri:
+                continue
+
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),

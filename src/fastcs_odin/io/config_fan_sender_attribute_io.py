@@ -4,9 +4,7 @@ from typing import Any
 
 from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrRW, AttrW
 from fastcs.datatypes import DType_T
-from fastcs.logging import bind_logger
-
-logger = bind_logger(logger_name=__name__)
+from fastcs.logging import logger
 
 
 @dataclass

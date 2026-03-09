@@ -5,7 +5,7 @@ import typer
 from fastcs.connections.ip_connection import IPConnectionSettings
 from fastcs.launch import FastCS
 from fastcs.logging import LogLevel, configure_logging
-from fastcs.transports.epics.ca.ioc import EpicsIOCOptions
+from fastcs.transports.epics import EpicsIOCOptions
 from fastcs.transports.epics.ca.transport import EpicsCATransport, EpicsGUIOptions
 
 from fastcs_odin.controllers import OdinController
@@ -56,7 +56,7 @@ def ioc(
     options = EpicsCATransport(
         epicsca=EpicsIOCOptions(pv_prefix=pv_prefix),
         gui=EpicsGUIOptions(
-            output_path=Path.cwd() / "odin.bob", title=f"Odin - {pv_prefix}"
+            output_path=Path.cwd() / "opi" / "odin.bob", title=f"Odin - {pv_prefix}"
         ),
     )
     launcher = FastCS(controller, [options])

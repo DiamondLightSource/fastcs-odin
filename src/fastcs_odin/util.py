@@ -9,13 +9,11 @@ from typing import Any, Literal, TypeVar
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import BaseController
 from fastcs.datatypes import Bool, DataType, Float, Int, String
-from fastcs.logging import bind_logger
+from fastcs.logging import logger
 from fastcs.util import snake_to_pascal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from fastcs_odin.io.parameter_attribute_io import ParameterTreeAttributeIORef
-
-logger = bind_logger(logger_name=__name__)
 
 REQUEST_METADATA_HEADER = {"Accept": "application/json;metadata=true"}
 

@@ -1,8 +1,4 @@
-from fastcs.logging import bind_logger
-
 from fastcs_odin.controllers.odin_subcontroller import OdinSubController
-
-logger = bind_logger(logger_name=__name__)
 
 
 class OdinAdapterController(OdinSubController):

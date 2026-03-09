@@ -315,3 +315,6 @@ async def test_mw_initialise(mocker: MockerFixture):
 
     # Check `0/status/` removed
     assert meta_writer.timestamp.path == []  # type: ignore
+
+    # Check acquisitions parameters are not created as attributes
+    assert not any("acquisitions" in name for name in meta_writer.attributes)

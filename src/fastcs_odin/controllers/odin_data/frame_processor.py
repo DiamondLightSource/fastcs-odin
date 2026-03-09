@@ -5,7 +5,6 @@ from functools import cached_property, partial
 
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
-from fastcs.logging import bind_logger
 from fastcs.methods import command
 
 from fastcs_odin.controllers.odin_data.odin_data_adapter import (
@@ -17,8 +16,6 @@ from fastcs_odin.io.status_summary_attribute_io import (
     _filter_sub_controllers,
 )
 from fastcs_odin.util import OdinParameter, create_attribute, partition
-
-logger = bind_logger(logger_name=__name__)
 
 
 class FrameProcessorController(OdinSubController):
@@ -161,6 +158,10 @@ class FrameProcessorPluginController(OdinSubController):
                 parameter.set_path(["current_file_path"])
             elif parameter.uri == ["status", "hdf", "acquisition_id"]:
                 parameter.set_path(["current_acquisition_id"])
+            elif parameter.uri[:2] == ["status", "blosc"]:
+                # TODO: https://github.com/odin-detector/odin-data/issues/426
+                continue
+
             self.add_attribute(
                 parameter.name,
                 create_attribute(parameter=parameter, api_prefix=self._api_prefix),

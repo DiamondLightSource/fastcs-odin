@@ -226,8 +226,34 @@ async def test_controller_initialise(
 
     await controller.initialise()
 
-    assert isinstance(controller.TEST_ADAPTER, expected_controller)  # type: ignore
-    assert all(c in controller.TEST_ADAPTER.command_methods for c in expected_commands)  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(controller.test_adapter, expected_controller)  # type: ignore
+    assert all(c in controller.test_adapter.command_methods for c in expected_commands)  # pyright: ignore[reportAttributeAccessIssue]
+
+
+@pytest.mark.asyncio
+async def test_controller_initialise_short_adapter_name_is_uppercased(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "fastcs_odin.controllers.odin_controller.initialise_summary_attributes"
+    )
+    mocker.patch(
+        "fastcs_odin.controllers.odin_data.odin_data_adapter.initialise_summary_attributes"
+    )
+
+    controller = OdinController(IPConnectionSettings("", 0))
+    controller.connection = mocker.AsyncMock()
+    controller.connection.open = mocker.MagicMock()
+    controller.connection.get.side_effect = [
+        {"adapters": ["fp", "xspress"]},
+        {"module": {"value": "FrameProcessorAdapter"}},
+        {"module": {"value": "XspressProcessorAdapter"}},
+    ]
+
+    await controller.initialise()
+
+    assert "FP" in controller.sub_controllers
+    assert "xspress" in controller.sub_controllers
 
 
 @pytest.mark.asyncio
@@ -304,21 +330,42 @@ async def test_fp_create_plugin_sub_controllers(mocker: MockerFixture):
 @pytest.mark.asyncio
 async def test_param_tree_io_update(mocker: MockerFixture):
     connection = mocker.AsyncMock()
-    connection.get.return_value = {"frames_written": 20}
     io = ParameterTreeAttributeIO(connection)
     attr = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames_written"))
 
+    connection.get.return_value = {"frames_written": 20}
     await io.update(attr)
-
     connection.get.assert_called_once_with("hdf/frames_written")
     assert attr.get() == 20
 
     # Check validate called to cast value
     connection.get.return_value = {"frames_written": "20"}
-
     await io.update(attr)
-
     assert attr.get() == 20
+
+    # Check parsing "value" key
+    connection.get.return_value = {"value": 30}
+    await io.update(attr)
+    assert attr.get() == 30
+
+    # Check fail to parse raises exception
+    connection.get.return_value = {"frames_wrotten": 40}
+    with pytest.raises(ValueError, match="Failed to parse response"):
+        await io.update(attr)
+    assert attr.get() == 30
+
+
+@pytest.mark.asyncio
+async def test_param_tree_io_update_get_exception(mocker: MockerFixture, loguru_caplog):
+    connection = mocker.AsyncMock()
+    connection.get.side_effect = RuntimeError("connection failed")
+    io = ParameterTreeAttributeIO(connection)
+    attr = AttrR(Int(), io_ref=ParameterTreeAttributeIORef("hdf/frames_written"))
+
+    with pytest.raises(RuntimeError, match="connection failed"):
+        await io.update(attr)
+
+    assert "Failed to get parameter" in loguru_caplog.text
 
 
 @pytest.mark.asyncio
