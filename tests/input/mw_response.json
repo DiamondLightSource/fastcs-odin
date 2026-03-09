@@ -35,7 +35,15 @@
     },
     "0": {
         "status": {
-            "acquisitions": {},
+            "acquisitions": {
+                "acq123": {
+                    "written": {
+                        "value": 0,
+                        "writeable": false,
+                        "type": "int"
+                    }
+                }
+            },
             "timestamp": "2025-11-11T10:29:20.290511",
             "error": [],
             "connected": true
