@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>FastCS Odin &#8212; fastcs-odin 0.8.1.dev9+g0434c89d7 documentation</title>
+    <title>FastCS Odin &#8212; fastcs-odin 0.9.1.dev1+g4e77bfcca documentation</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="_static/documentation_options.js?v=a2ac1a37"></script>
+    <script src="_static/documentation_options.js?v=c845f9ea"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -497,6 +497,17 @@ purpose.</p>
 <p>To run local versions of odin-data / odin-control python applications install it into
 the virtual environment with <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">...</span></code> to override the versions installed
 from GitHub.</p>
+<section id="odin-data-example">
+<h4>Odin Data Example<a class="headerlink" href="#odin-data-example" title="Link to this heading">#</a></h4>
+<p>Another option is to run an odin deployment and open the fastcs-odin devcontainer in
+isolation. Detector repositories provide container images and dev deployments, such as
+the <a class="reference external" href="https://github.com/odin-detector/odin-data-example">odin-data-example</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">podman</span> <span class="n">run</span> <span class="o">--</span><span class="n">rm</span> <span class="o">-</span><span class="n">it</span> <span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">odin</span><span class="o">-</span><span class="n">detector</span><span class="o">/</span><span class="n">odin</span><span class="o">-</span><span class="n">data</span><span class="o">-</span><span class="n">example</span><span class="o">-</span><span class="n">runtime</span>
+</pre></div>
+</div>
+<p>This deployment will host an odin server that the default fastcs-odin <code class="docutils literal notranslate"><span class="pre">Odin</span> <span class="pre">IOC</span></code> launch
+config will connect to.</p>
+</section>
 </section>
 <section id="isolated-development-environment">
 <h3>Isolated Development Environment<a class="headerlink" href="#isolated-development-environment" title="Link to this heading">#</a></h3>
@@ -529,6 +540,7 @@ generate json files for each adapter in an Odin server to write tests against.</
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/odin-detector.html">Creating an Odin Detector Driver</a></li>
 </ul>
 </li>
 </ul>
