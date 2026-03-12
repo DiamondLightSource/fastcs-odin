@@ -28,6 +28,9 @@ authors = [
 
 [dependency-groups]
 dev = [
+    "fastcs[epicspva]",
+    "pillow",
+    "requests",
     "copier",
     "myst-parser",
     "pre-commit",
@@ -65,7 +68,7 @@ reportMissingImports = false # Ignore missing stubs in imported modules
 [tool.pytest.ini_options]
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
 addopts = """
-    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
+    --tb=native -vv --doctest-modules --doctest-glob="*.rst" --ignore-glob docs/snippets/*.py
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
 filterwarnings = "error"

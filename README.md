@@ -80,6 +80,19 @@ To run local versions of odin-data / odin-control python applications install it
 the virtual environment with `$ pip install -e ...` to override the versions installed
 from GitHub.
 
+#### Odin Data Example
+
+Another option is to run an odin deployment and open the fastcs-odin devcontainer in
+isolation. Detector repositories provide container images and dev deployments, such as
+the [odin-data-example](https://github.com/odin-detector/odin-data-example):
+
+```
+podman run --rm -it ghcr.io/odin-detector/odin-data-example-runtime
+```
+
+This deployment will host an odin server that the default fastcs-odin `Odin IOC` launch
+config will connect to.
+
 ### Isolated Development Environment
 
 While it is necessary to work on odin-control / odin-data alongside fastcs-odin in some
