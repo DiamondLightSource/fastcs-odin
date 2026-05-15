@@ -79,6 +79,7 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     process_frames_per_block: AttrRW[int]
     process_blocks_per_file: AttrRW[int]
     frames: AttrR[int]
+    enable_vds_creation = AttrRW(Bool())
 
     frames_written = AttrR(
         Int(),

@@ -862,6 +862,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "fastcs", extra = ["epicsca"] },
+    { name = "h5py" },
 ]
 
 [package.dev-dependencies]
@@ -894,6 +895,7 @@ odin = [
 requires-dist = [
     { name = "aiohttp" },
     { name = "fastcs", extras = ["epicsca"], specifier = "~=0.12.0" },
+    { name = "h5py" },
 ]
 
 [package.metadata.requires-dev]
