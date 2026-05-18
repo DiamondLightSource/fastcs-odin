@@ -8,7 +8,7 @@ from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
 from fastcs.methods import command
 
-from fastcs_odin.controllers.odin_data._generate_vds import create_interleave_vds
+from fastcs_odin.controllers.odin_data._generate_vds import VDSGenerator
 from fastcs_odin.controllers.odin_data.odin_data_adapter import (
     OdinDataAdapterController,
 )
@@ -137,28 +137,35 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     def _stop_writing_commands(self):
         return self._collect_commands((re.compile(r"[0-9]+"), "HDF"), "stop_writing")
 
-    @command()
-    async def start_writing(self) -> None:
+    def _create_vds(self):
         if self.enable_vds_creation.get():
-            create_interleave_vds(
-                path=Path(self.file_path.get()),
-                prefix=self.file_prefix.get(),
+            self.vds.create_interleave_vds(
                 datasets=["data", "data2", "data3"],
-                frame_count=self.frames.get(),
+                frame_count=self.frames_written.get(),
                 frames_per_block=self.process_frames_per_block.get(),
                 blocks_per_file=self.process_blocks_per_file.get(),
                 frame_shape=(
-                    self.data_dims_1.get(),
                     self.data_dims_0.get(),
+                    self.data_dims_1.get(),
                 ),
                 dtype=self.data_datatype.get(),
             )
-            await asyncio.gather(
-                *(start_writing() for start_writing in self._start_writing_commands)
-            )
+
+    def _instantiate_vds_generator(self):
+        self.vds = VDSGenerator(
+            path=Path(self.file_path.get()), prefix=self.file_prefix.get()
+        )
+
+    @command()
+    async def start_writing(self) -> None:
+        self._instantiate_vds_generator()
+        await asyncio.gather(
+            *(start_writing() for start_writing in self._start_writing_commands)
+        )
 
     @command()
     async def stop_writing(self) -> None:
+        self._create_vds()
         await asyncio.gather(
             *(stop_writing() for stop_writing in self._stop_writing_commands)
         )
