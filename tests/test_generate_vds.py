@@ -5,12 +5,7 @@ import h5py
 import numpy as np
 import pytest
 
-from fastcs_odin.controllers.odin_data._generate_vds import (
-    FileFrames,
-    _calculate_frame_distribution,
-    _get_frames_per_file_writer,
-    create_interleave_vds,
-)
+from fastcs_odin.controllers.odin_data._generate_vds import FileFrames, VDSGenerator
 
 
 @pytest.mark.parametrize(
@@ -33,7 +28,7 @@ def test_get_frames_per_file_writer_splits_frames_correctly(
     n_file_writers: int,
     expected_split_frames: list[int],
 ):
-    split_frames_numbers = _get_frames_per_file_writer(
+    split_frames_numbers = VDSGenerator._get_frames_per_file_writer(
         frame_count, frames_per_block, n_file_writers
     )
     assert split_frames_numbers == expected_split_frames
@@ -87,9 +82,8 @@ def test_create_interleave_vds_layout_contains_expected_files_and_has_expected_s
         "fastcs_odin.controllers.odin_data._generate_vds.h5py.File",
         return_value=mock_file,
     ):
-        create_interleave_vds(
-            Path(),
-            "test",
+        vds = VDSGenerator(Path(), "test")
+        vds.create_interleave_vds(
             ["data"],
             frame_count,
             frames_per_block,
@@ -125,9 +119,8 @@ def test_create_interleave_cds_makes_expected_source_layout_calls(
     expected_frames_per_file: list[int],
 ):
     datasets = ["data", "sets"]
-    create_interleave_vds(
-        Path(),
-        "test",
+    vds = VDSGenerator(Path(), "test")
+    vds.create_interleave_vds(
         datasets,
         frame_count,
         frames_per_block,
@@ -208,7 +201,7 @@ def test_calculate_frame_distribution(
     n_writers: int,
     expected_distribution: dict[int, FileFrames],
 ):
-    result = _calculate_frame_distribution(
+    result = VDSGenerator._calculate_frame_distribution(
         frame_count, frames_per_block, blocks_per_file, n_writers
     )
     assert result == expected_distribution
@@ -303,7 +296,8 @@ def test_create_interleave_vds_before_files_written(
     acquired_data, expected_vds_data = mock_round_robin_data
     prefix = "test"
 
-    create_interleave_vds(tmp_path, prefix, ["data"], 19, 2, 2, (2, 2))
+    vds = VDSGenerator(tmp_path, prefix)
+    vds.create_interleave_vds(["data"], 19, 2, 2, (2, 2))
 
     for i, data in enumerate(acquired_data):
         with h5py.File(tmp_path / f"test_00000{i + 1}.h5", "w") as f:
@@ -328,7 +322,8 @@ def test_create_interleave_vds_after_files_written(
         with h5py.File(tmp_path / f"test_00000{i + 1}.h5", "w") as f:
             f.create_dataset(name="data", data=data)
 
-    create_interleave_vds(tmp_path, prefix, ["data"], 19, 2, 2, (2, 2))
+    vds = VDSGenerator(tmp_path, prefix)
+    vds.create_interleave_vds(["data"], 19, 2, 2, (2, 2))
 
     with h5py.File(f"{tmp_path / prefix}_vds.h5", "r") as f:
         virtual_dataset = f.get("data")
@@ -351,7 +346,8 @@ def test_create_interleave_vds_creates_virtual_dataset_for_all_datasets(
             f.create_dataset(name="two", data=data * 10)
             f.create_dataset(name="three", data=data * 100)
 
-    create_interleave_vds(tmp_path, prefix, ["one", "two", "three"], 19, 2, 2, (2, 2))
+    vds = VDSGenerator(tmp_path, prefix)
+    vds.create_interleave_vds(["one", "two", "three"], 19, 2, 2, (2, 2))
 
     with h5py.File(f"{tmp_path / prefix}_vds.h5", "r") as f:
         assert np.array_equal(f.get("one")[()], np.zeros(expected_vds_data.shape))  # type: ignore
