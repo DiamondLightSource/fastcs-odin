@@ -2,11 +2,13 @@ import asyncio
 import re
 from collections.abc import Sequence
 from functools import cached_property, partial
+from pathlib import Path
 
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.datatypes import Bool, Int
 from fastcs.methods import command
 
+from fastcs_odin.controllers.odin_data._generate_vds import create_interleave_vds
 from fastcs_odin.controllers.odin_data.odin_data_adapter import (
     OdinDataAdapterController,
 )
@@ -79,6 +81,9 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
     process_frames_per_block: AttrRW[int]
     process_blocks_per_file: AttrRW[int]
     frames: AttrR[int]
+    data_datatype: AttrRW[str]
+    data_dims_0: AttrR[int]  # y
+    data_dims_1: AttrR[int]  # x
     enable_vds_creation = AttrRW(Bool())
 
     frames_written = AttrR(
@@ -134,9 +139,23 @@ class FrameProcessorAdapterController(OdinDataAdapterController):
 
     @command()
     async def start_writing(self) -> None:
-        await asyncio.gather(
-            *(start_writing() for start_writing in self._start_writing_commands)
-        )
+        if self.enable_vds_creation.get():
+            create_interleave_vds(
+                path=Path(self.file_path.get()),
+                prefix=self.file_prefix.get(),
+                datasets=["data", "data2", "data3"],
+                frame_count=self.frames.get(),
+                frames_per_block=self.process_frames_per_block.get(),
+                blocks_per_file=self.process_blocks_per_file.get(),
+                frame_shape=(
+                    self.data_dims_1.get(),
+                    self.data_dims_0.get(),
+                ),
+                dtype=self.data_datatype.get(),
+            )
+            await asyncio.gather(
+                *(start_writing() for start_writing in self._start_writing_commands)
+            )
 
     @command()
     async def stop_writing(self) -> None:
