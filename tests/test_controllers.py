@@ -2,12 +2,13 @@ import json
 import re
 from functools import partial
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.connections import IPConnectionSettings
 from fastcs.controllers import Controller
-from fastcs.datatypes import Bool, Float, Int
+from fastcs.datatypes import Bool, Float, Int, String
 from pytest_mock import MockerFixture
 
 from fastcs_odin.controllers.odin_adapter_controller import OdinAdapterController
@@ -498,6 +499,9 @@ async def test_frame_processor_start_and_stop_writing(mocker: MockerFixture):
     hdf.start_writing = mocker.AsyncMock()  # type: ignore
     hdf.stop_writing = mocker.AsyncMock()  # type: ignore
 
+    fpac.file_path = AttrRW(String())
+    fpac.file_prefix = AttrRW(String())
+
     fpac[0] = fpc
 
     # Top level FP commands should collect and call lower level commands
@@ -505,6 +509,69 @@ async def test_frame_processor_start_and_stop_writing(mocker: MockerFixture):
     await fpac.stop_writing()
     assert len(hdf.start_writing.mock_calls) == 1  # type: ignore
     assert len(hdf.stop_writing.mock_calls) == 1  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_vds_generator_created_on_start_writing(mocker: MockerFixture):
+    fpac = FrameProcessorAdapterController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    await fpc._create_plugin_sub_controllers(["hdf"])
+
+    hdf = fpc.sub_controllers["HDF"]
+    hdf.start_writing = mocker.AsyncMock()
+    hdf.stop_writing = mocker.AsyncMock()
+
+    fpac.file_path = AttrRW(String(), initial_value="test_path")
+    fpac.file_prefix = AttrRW(String(), initial_value="test_prefix")
+
+    fpac[0] = fpc
+
+    await fpac.start_writing()
+    assert fpac.vds.path == Path("test_path")
+    assert fpac.vds.prefix == "test_prefix"
+
+
+@pytest.mark.asyncio
+async def test_vds_created_on_stop_writing_if_vds_enabled(mocker: MockerFixture):
+    fpac = FrameProcessorAdapterController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    fpc = FrameProcessorController(
+        mocker.AsyncMock(), mocker.AsyncMock(), "api/0.1", []
+    )
+    await fpc._create_plugin_sub_controllers(["hdf"])
+
+    hdf = fpc.sub_controllers["HDF"]
+    hdf.start_writing = mocker.AsyncMock()
+    hdf.stop_writing = mocker.AsyncMock()
+
+    await fpac.enable_vds_creation.put(True)
+    fpac.file_path = AttrRW(String(), initial_value="test_path")
+    fpac.file_prefix = AttrRW(String(), initial_value="test_prefix")
+    fpac.process_frames_per_block = AttrRW(Int(), initial_value=1)
+    fpac.process_blocks_per_file = AttrRW(Int(), initial_value=0)
+    fpac.data_dims_0 = AttrRW(Int(), initial_value=10)
+    fpac.data_dims_1 = AttrRW(Int(), initial_value=20)
+    fpac.data_datatype = AttrRW(String(), initial_value="uint32")
+    fpac.frames_written.get = MagicMock(return_value=100)
+
+    fpac[0] = fpc
+
+    await fpac.start_writing()
+    fpac.vds.create_interleave_vds = MagicMock()
+    await fpac.stop_writing()
+    fpac.vds.create_interleave_vds.assert_called_once_with(
+        datasets=["data", "data2", "data3"],
+        frame_count=100,
+        frames_per_block=1,
+        blocks_per_file=0,
+        frame_shape=(10, 20),
+        dtype="uint32",
+    )
 
 
 @pytest.mark.asyncio
@@ -520,6 +587,9 @@ async def test_top_level_frame_processor_commands_raise_exception(
     )
     await fpc._create_plugin_sub_controllers(["hdf"])
     fpac[0] = fpc
+
+    fpac.file_path = AttrRW(String(), initial_value="")
+    fpac.file_prefix = AttrRW(String(), initial_value="")
 
     with pytest.raises(AttributeError, match="does not have"):
         await fpac.start_writing()
