@@ -10,7 +10,6 @@ from fastcs.datatypes import Bool, Int, String, Waveform
 from fastcs.methods import Command, command, scan
 from fastcs.transports.epics import EpicsCAOptions, EpicsGUIOptions
 from fastcs.transports.epics.ca.transport import EpicsCATransport
-from fastcs.transports.epics.pva.transport import EpicsPVATransport
 from PIL import Image
 
 from fastcs_odin.controllers import OdinController, OdinControllerSettings
