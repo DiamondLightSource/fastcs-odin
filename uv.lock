@@ -828,8 +828,8 @@ wheels = [
 
 [[package]]
 name = "fastcs"
-version = "0.14.4"
-source = { registry = "https://pypi.org/simple" }
+version = "0.14.5.dev11+g5bcb2b77f"
+source = { git = "https://github.com/DiamondLightSource/fastcs.git?rev=add_enum_mapping#5bcb2b77f1b3072c358c204ed4137002a961eac5" }
 dependencies = [
     { name = "aioserial" },
     { name = "fastapi", extra = ["standard"] },
@@ -841,19 +841,12 @@ dependencies = [
     { name = "ruamel-yaml" },
     { name = "stdio-socket" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/00/f6359289bffafb7b9747e012ff8bb3067558566b7d6142a5425391714d40/fastcs-0.14.4.tar.gz", hash = "sha256:f081fc19e929e681a3d10e7851516ebdb8573e001bb9307ca25f79a57f91d896", size = 419087, upload-time = "2026-10-09T14:35:12.762Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/b5/92e8b97e4b3bd429b4fe530cd9bde6bbfe48f1d01a711860ea26c6a87753/fastcs-0.14.4-py3-none-any.whl", hash = "sha256:565d34aeb8bf7a78b9258179cb4ecd31aa0ad0b5270a31e9bf80fe880a9054fc", size = 94983, upload-time = "2026-10-09T14:35:11.518Z" },
-]
 
 [package.optional-dependencies]
-epicsca = [
-    { name = "pvi" },
-    { name = "softioc" },
-]
-epicspva = [
+epics = [
     { name = "p4p" },
     { name = "pvi" },
+    { name = "softioc" },
 ]
 
 [[package]]
@@ -861,7 +854,7 @@ name = "fastcs-odin"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "fastcs", extra = ["epicsca", "epicspva"] },
+    { name = "fastcs", extra = ["epics"] },
     { name = "h5py" },
 ]
 
@@ -893,7 +886,7 @@ odin = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp" },
-    { name = "fastcs", extras = ["epicsca", "epicspva"], specifier = "==0.14.4" },
+    { name = "fastcs", extras = ["epics"], git = "https://github.com/DiamondLightSource/fastcs.git?rev=add_enum_mapping" },
     { name = "h5py" },
 ]
 

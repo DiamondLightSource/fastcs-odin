@@ -6,7 +6,8 @@ controllers:
       ip: "localhost"
       port: 8888
 transport:
-  - epicsca: {}
+  # - epicsca: {}
+  - epicspva: {}
     gui:
       title: "Odin - ODIN"
       output_dir: ./opi/
