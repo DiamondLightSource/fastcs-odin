@@ -7,6 +7,7 @@ from fastcs_odin.util import (
     OdinParameterMetadata,
     create_attribute,
     create_odin_parameters,
+    unpack_status_arrays,
 )
 
 
@@ -61,3 +62,22 @@ def test_create_parameters_groups(metadata, uri, expected_attr, group):
     attr = create_attribute(param, "test", group=group)
 
     assert attr.group == expected_attr.group
+
+
+def test_unpack_int_array():
+    uris = [["0", "status", "arr"]]
+    attr = {"0": {"status": {"arr": [0, 1, 2, 3]}}}
+    parameters = create_odin_parameters(attr)
+    parameters = unpack_status_arrays(parameters, uris)
+    assert all(parameter.metadata.type == "int" for parameter in parameters)
+
+    attr = {"0": {"status": {"arr": [0.0, 1.0, 2.0, 3.0]}}}
+    parameters = create_odin_parameters(attr)
+    parameters = unpack_status_arrays(parameters, uris)
+    assert all(parameter.metadata.type == "float" for parameter in parameters)
+
+    attr = {"0": {"status": {"arr": ["0", "1", "2", "3"]}}}
+    parameters = create_odin_parameters(attr)
+    parameters = unpack_status_arrays(parameters, uris)
+    assert len(parameters) == 4
+    assert all(parameter.metadata.type == "str" for parameter in parameters)

@@ -257,11 +257,7 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
                 parameters.append(
                     OdinParameter(
                         uri=parameter.uri + [str(idx)],
-                        metadata=OdinParameterMetadata(
-                            value=value,
-                            type=parameter.metadata.type,
-                            writeable=parameter.metadata.writeable,
-                        ),
+                        metadata=infer_metadata(value, parameter.uri),
                     )
                 )
             removelist.append(parameter)
