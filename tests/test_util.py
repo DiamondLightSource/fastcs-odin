@@ -64,20 +64,30 @@ def test_create_parameters_groups(metadata, uri, expected_attr, group):
     assert attr.group == expected_attr.group
 
 
-def test_unpack_int_array():
+@pytest.mark.parametrize(
+    "values, expected_type",
+    [
+        ([0, 1, 2, 3], "int"),
+        ([0.0, 1.0, 2.0, 3.0], "float"),
+        (["0", "1", "2", "3"], "str"),
+    ],
+)
+def test_unpack_array(values, expected_type):
     uris = [["0", "status", "arr"]]
-    attr = {"0": {"status": {"arr": [0, 1, 2, 3]}}}
+    attr = {"0": {"status": {"arr": values}}}
     parameters = create_odin_parameters(attr)
     parameters = unpack_status_arrays(parameters, uris)
-    assert all(parameter.metadata.type == "int" for parameter in parameters)
 
-    attr = {"0": {"status": {"arr": [0.0, 1.0, 2.0, 3.0]}}}
-    parameters = create_odin_parameters(attr)
-    parameters = unpack_status_arrays(parameters, uris)
-    assert all(parameter.metadata.type == "float" for parameter in parameters)
+    assert len(parameters) == len(values)
 
-    attr = {"0": {"status": {"arr": ["0", "1", "2", "3"]}}}
-    parameters = create_odin_parameters(attr)
-    parameters = unpack_status_arrays(parameters, uris)
-    assert len(parameters) == 4
-    assert all(parameter.metadata.type == "str" for parameter in parameters)
+    assert all(parameter.metadata.type == expected_type for parameter in parameters)
+
+    for idx, value in enumerate(values):
+        assert parameters[idx] == OdinParameter(
+            uri=["0", "status", "arr", str(idx)],
+            metadata=OdinParameterMetadata(
+                value=value,
+                type=expected_type,
+                writeable=False,
+            ),
+        )
