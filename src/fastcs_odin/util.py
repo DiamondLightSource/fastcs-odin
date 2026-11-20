@@ -261,8 +261,10 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
                             metadata=infer_metadata(value, parameter.uri),
                         )
                     )
-                except ValidationError:
-                    logging.error(f"Unsupported type for {value} in {parameter.name}")
+                except ValidationError as e:
+                    raise ValueError(
+                        f"Unsupported type for {value} in {parameter.name}"
+                    ) from e
             removelist.append(parameter)
 
     for value in removelist:

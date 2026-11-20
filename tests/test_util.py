@@ -91,3 +91,13 @@ def test_unpack_array(values, expected_type):
                 writeable=False,
             ),
         )
+
+
+def test_unpack_array_assert():
+    uris = [["0", "status", "arr"]]
+    attr = {"0": {"status": {"arr": [1, 2, [1, 2]]}}}
+    parameters = create_odin_parameters(attr)
+    with pytest.raises(
+        ValueError, match=r"Unsupported type for \[1, 2\] in 0_status_arr"
+    ):
+        unpack_status_arrays(parameters, uris)
