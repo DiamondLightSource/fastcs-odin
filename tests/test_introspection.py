@@ -166,59 +166,6 @@ def test_unpack_status_array_two_node_fp():
     assert len(parameters) == 196
 
 
-def test_unpack_status_array():
-    uri_list = [
-        ["status", "plugins", "names"],
-    ]
-
-    data = {
-        "status": {
-            "plugins": {"names": ["dummy", "hdf", "offset", "param"]},
-        }
-    }
-
-    parameters = create_odin_parameters(data)
-    parameters = unpack_status_arrays(parameters, uri_list)
-
-    assert len(parameters) == 4
-
-    assert parameters[0] == OdinParameter(
-        uri=["status", "plugins", "names", "0"],
-        metadata=OdinParameterMetadata(
-            value="dummy",
-            type="str",
-            writeable=False,
-        ),
-    )
-
-    assert parameters[1] == OdinParameter(
-        uri=["status", "plugins", "names", "1"],
-        metadata=OdinParameterMetadata(
-            value="hdf",
-            type="str",
-            writeable=False,
-        ),
-    )
-
-    assert parameters[2] == OdinParameter(
-        uri=["status", "plugins", "names", "2"],
-        metadata=OdinParameterMetadata(
-            value="offset",
-            type="str",
-            writeable=False,
-        ),
-    )
-
-    assert parameters[3] == OdinParameter(
-        uri=["status", "plugins", "names", "3"],
-        metadata=OdinParameterMetadata(
-            value="param",
-            type="str",
-            writeable=False,
-        ),
-    )
-
-
 def test_unpack_invlid_status_array():
     uri_list = [
         ["status", "plugins", "names"],

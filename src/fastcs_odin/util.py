@@ -254,16 +254,17 @@ def unpack_status_arrays(parameters: list[OdinParameter], uris: list[list[str]])
                 logging.warning(f"Failed to parse {parameter} value as a list:\n{e}")
                 continue
             for idx, value in enumerate(status_list):
-                parameters.append(
-                    OdinParameter(
-                        uri=parameter.uri + [str(idx)],
-                        metadata=OdinParameterMetadata(
-                            value=value,
-                            type=parameter.metadata.type,
-                            writeable=parameter.metadata.writeable,
-                        ),
+                try:
+                    parameters.append(
+                        OdinParameter(
+                            uri=parameter.uri + [str(idx)],
+                            metadata=infer_metadata(value, parameter.uri),
+                        )
                     )
-                )
+                except ValidationError as e:
+                    raise ValueError(
+                        f"Unsupported type for {value} in {parameter.name}"
+                    ) from e
             removelist.append(parameter)
 
     for value in removelist:
